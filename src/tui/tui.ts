@@ -1099,7 +1099,7 @@ export function start(chains: ChainStatus[], port: number, ctl: Controls = {}): 
 
 export function banner(port: number, chains: ChainStatus[]): void {
   console.log("");
-  console.log(`  ${bold("rpc-lb")} ${dim(`listening on http://localhost:${port}`)}`);
+  console.log(`  ${bold("sae")} ${dim(`listening on http://localhost:${port}`)}`);
   for (const c of chains) {
     const ws =
       c.wsUpstreams && c.wsUpstreams.length > 0

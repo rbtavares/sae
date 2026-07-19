@@ -40,14 +40,14 @@ scripts — e.g. `/eth` for Ethereum, `/arb` for Arbitrum. See
 Compile a self-contained, dependency-free binary — no Bun needed at runtime:
 
 ```bash
-bun run build              # host platform -> dist/rpc-lb
-./dist/rpc-lb              # run it
+bun run build              # host platform -> dist/sae
+./dist/sae                 # run it
 ```
 
 Cross-compile for all supported platforms (darwin/linux, arm64/x64):
 
 ```bash
-bun run build:all          # -> dist/rpc-lb-<os>-<arch>
+bun run build:all          # -> dist/sae-<os>-<arch>
 ```
 
 Ship the single binary file and run it directly.
@@ -156,7 +156,7 @@ Flags override environment variables and defaults.
 | `-h, --help` | Show usage |
 
 ```bash
-./dist/rpc-lb --port 9000 --chain eth --chain arb   # production binary
+./dist/sae --port 9000 --chain eth --chain arb      # production binary
 bun dev -- -p 9000 -c eth,arb                        # development
 ```
 

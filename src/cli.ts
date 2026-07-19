@@ -7,9 +7,9 @@ export interface CliOptions {
   chains: string[] | null;
 }
 
-const USAGE = `rpc-lb — EVM JSON-RPC load balancer
+const USAGE = `sae — EVM JSON-RPC load balancer
 
-Usage: bun run src/index.ts [options]
+Usage: sae [options]
 
 Options:
   -p, --port <number>   Port to listen on (overrides PORT env)
