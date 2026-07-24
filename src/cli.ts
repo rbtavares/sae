@@ -1,4 +1,4 @@
-import type { ChainConfig } from "./config";
+import type { ChainConfig } from "./config.js";
 
 export interface CliOptions {
   /** Override listen port, or null to keep the config/env default. */

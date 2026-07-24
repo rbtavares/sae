@@ -1,6 +1,6 @@
-import { UpstreamHealth } from "./upstream-health";
+import { UpstreamHealth } from "./upstream-health.js";
 
-export type { BreakerChangeListener } from "./upstream-health";
+export type { BreakerChangeListener } from "./upstream-health.js";
 
 export interface CallOutcome {
   ok: boolean;

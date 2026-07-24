@@ -6,5 +6,5 @@
   "semi": true,
   "singleQuote": false,
   "trailingComma": "all",
-  "ignorePatterns": ["node_modules", "bun.lock"]
+  "ignorePatterns": ["node_modules", "dist", "dist-test", "pnpm-lock.yaml"]
 }

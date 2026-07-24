@@ -1,6 +1,15 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { ChainBalancer } from "../../src/core/balancer";
-import type { BreakerConfig, ChainConfig } from "../../src/config";
+import type { BreakerConfig, ChainConfig } from "../../src/config.js";
+import { ChainBalancer } from "../../src/core/balancer.js";
+import {
+  afterEach,
+  closeAllServers,
+  describe,
+  expect,
+  fakeRpc,
+  fakeWsRpc,
+  sleep,
+  test,
+} from "../helpers.js";
 
 const breakerCfg: BreakerConfig = {
   failureThreshold: 2,
@@ -8,18 +17,8 @@ const breakerCfg: BreakerConfig = {
   halfOpenMaxProbes: 1,
 };
 
-type Handler = (req: Request) => Response | Promise<Response>;
-
-const servers: ReturnType<typeof Bun.serve>[] = [];
-
-function fakeRpc(handler: Handler): string {
-  const server = Bun.serve({ port: 0, fetch: (req) => handler(req) });
-  servers.push(server);
-  return `http://localhost:${server.port}`;
-}
-
-afterEach(() => {
-  for (const s of servers.splice(0)) s.stop(true);
+afterEach(async () => {
+  await closeAllServers();
 });
 
 function makeBalancer(
@@ -37,23 +36,6 @@ function makeBalancer(
     maxAttempts,
   };
   return new ChainBalancer(cfg, breakerCfg, 5);
-}
-
-/** Minimal JSON-RPC-over-WS server for balancer WS routing tests. */
-function fakeWsRpc(block: string): string {
-  const server = Bun.serve({
-    port: 0,
-    fetch: (req, srv) =>
-      srv.upgrade(req) ? undefined : new Response("ws", { status: 426 }),
-    websocket: {
-      message(ws, msg) {
-        const req = JSON.parse(String(msg)) as { id: unknown };
-        ws.send(JSON.stringify({ jsonrpc: "2.0", id: req.id, result: block }));
-      },
-    },
-  });
-  servers.push(server);
-  return `ws://localhost:${server.port}`;
 }
 
 const RPC_REQ = JSON.stringify({
@@ -230,7 +212,7 @@ describe("ChainBalancer WebSocket routing", () => {
     result!.session.send(
       JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] }),
     );
-    await Bun.sleep(80);
+    await sleep(80);
     result!.session.close();
 
     const reply = JSON.parse(received[0]!) as { result: string };

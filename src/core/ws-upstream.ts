@@ -1,4 +1,5 @@
-import { UpstreamHealth } from "./upstream-health";
+import WebSocket from "ws";
+import { UpstreamHealth } from "./upstream-health.js";
 
 /**
  * A live upstream WebSocket session bound to exactly one client WS. The
@@ -38,22 +39,21 @@ export class WsSession {
     }
     this.socket = socket;
 
-    socket.addEventListener("open", () => {
+    socket.on("open", () => {
       // Flush anything the client sent while we were still connecting.
       for (const msg of this.pending) socket.send(msg);
       this.pending.length = 0;
       this.hooks.onOpen?.();
     });
-    socket.addEventListener("message", (ev: MessageEvent) => {
-      const data = typeof ev.data === "string" ? ev.data : String(ev.data);
-      this.hooks.onUpstreamMessage(data);
+    socket.on("message", (data: WebSocket.RawData) => {
+      this.hooks.onUpstreamMessage(data.toString());
     });
-    socket.addEventListener("close", (ev: CloseEvent) => {
+    socket.on("close", (code: number, reason: Buffer) => {
       if (this.closed) return;
       this.closed = true;
-      this.hooks.onUpstreamClose(ev.code, ev.reason);
+      this.hooks.onUpstreamClose(code, reason.toString());
     });
-    socket.addEventListener("error", () => {
+    socket.on("error", () => {
       this.hooks.onError?.("upstream socket error");
     });
   }
@@ -135,7 +135,7 @@ export class WsUpstream extends UpstreamHealth {
         finish();
       }, timeoutMs);
 
-      socket.addEventListener("open", () => {
+      socket.on("open", () => {
         socket.send(
           JSON.stringify({
             jsonrpc: "2.0",
@@ -146,11 +146,10 @@ export class WsUpstream extends UpstreamHealth {
         );
       });
 
-      socket.addEventListener("message", (ev: MessageEvent) => {
+      socket.on("message", (data: WebSocket.RawData) => {
         if (settled) return;
-        const text = typeof ev.data === "string" ? ev.data : String(ev.data);
         try {
-          const parsed = JSON.parse(text) as { result?: string };
+          const parsed = JSON.parse(data.toString()) as { result?: string };
           if (typeof parsed.result === "string") {
             this.lastBlock = BigInt(parsed.result);
           }
@@ -161,16 +160,16 @@ export class WsUpstream extends UpstreamHealth {
         finish();
       });
 
-      socket.addEventListener("error", () => {
+      socket.on("error", () => {
         if (settled) return;
         this.recordFailure("upstream socket error");
         finish();
       });
 
-      socket.addEventListener("close", (ev: CloseEvent) => {
+      socket.on("close", (code: number, reason: Buffer) => {
         if (settled) return;
         // Closed before a response arrived: score as failure.
-        this.recordFailure(ev.reason || `closed ${ev.code}`);
+        this.recordFailure(reason.toString() || `closed ${code}`);
         finish();
       });
     });

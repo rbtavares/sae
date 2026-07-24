@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, setSystemTime, test } from "bun:test";
-import type { BreakerConfig } from "../../src/config";
-import { Upstream } from "../../src/core/upstream";
+import type { BreakerConfig } from "../../src/config.js";
+import { Upstream } from "../../src/core/upstream.js";
+import { afterEach, describe, expect, setSystemTime, test } from "../helpers.js";
 
 const breakerCfg: BreakerConfig = {
   failureThreshold: 3,

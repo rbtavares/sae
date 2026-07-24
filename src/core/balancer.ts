@@ -1,8 +1,8 @@
-import type { BreakerConfig, ChainConfig } from "../config";
-import type { BreakerState } from "./circuit-breaker";
-import { type CallOutcome, Upstream } from "./upstream";
-import type { UpstreamHealth } from "./upstream-health";
-import { WsSession, WsUpstream } from "./ws-upstream";
+import type { BreakerConfig, ChainConfig } from "../config.js";
+import type { BreakerState } from "./circuit-breaker.js";
+import { type CallOutcome, Upstream } from "./upstream.js";
+import type { UpstreamHealth } from "./upstream-health.js";
+import { WsSession, WsUpstream } from "./ws-upstream.js";
 
 const JSON_HEADERS = { "content-type": "application/json" };
 

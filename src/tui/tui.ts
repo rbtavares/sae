@@ -1,6 +1,8 @@
-import type { BreakerState } from "../core/circuit-breaker";
-import type { ChainMetricsSnapshot } from "../stats/stats";
-import { version } from "../../package.json";
+import type { BreakerState } from "../core/circuit-breaker.js";
+import type { ChainMetricsSnapshot } from "../stats/stats.js";
+import pkg from "../../package.json" with { type: "json" };
+
+const version = (pkg as { version: string }).version;
 
 const isTTY = process.stdout.isTTY ?? false;
 const useColor = process.env.NO_COLOR ? false : isTTY || Boolean(process.env.FORCE_COLOR);

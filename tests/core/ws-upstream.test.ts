@@ -1,6 +1,9 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import type { BreakerConfig } from "../../src/config";
-import { WsSession, WsUpstream } from "../../src/core/ws-upstream";
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
+import { WebSocketServer } from "ws";
+import type { BreakerConfig } from "../../src/config.js";
+import { WsSession, WsUpstream } from "../../src/core/ws-upstream.js";
+import { afterEach, describe, expect, sleep, test } from "../helpers.js";
 
 const breakerCfg: BreakerConfig = {
   failureThreshold: 2,
@@ -8,10 +11,18 @@ const breakerCfg: BreakerConfig = {
   halfOpenMaxProbes: 1,
 };
 
-const servers: ReturnType<typeof Bun.serve>[] = [];
+const servers: Server[] = [];
 
-afterEach(() => {
-  for (const s of servers.splice(0)) s.stop(true);
+afterEach(async () => {
+  await Promise.all(
+    servers.splice(0).map(
+      (s) =>
+        new Promise<void>((resolve) => {
+          s.closeAllConnections?.();
+          s.close(() => resolve());
+        }),
+    ),
+  );
 });
 
 /**
@@ -21,37 +32,33 @@ afterEach(() => {
  */
 function fakeWsRpc(opts: { block?: string; pushSub?: boolean } = {}): string {
   const block = opts.block ?? "0x64";
-  const server = Bun.serve({
-    port: 0,
-    fetch(req, srv) {
-      if (srv.upgrade(req)) return undefined;
-      return new Response("expected ws", { status: 426 });
-    },
-    websocket: {
-      message(ws, msg) {
-        const text = typeof msg === "string" ? msg : String(msg);
-        const req = JSON.parse(text) as { id: unknown; method: string };
-        if (req.method === "eth_blockNumber") {
-          ws.send(JSON.stringify({ jsonrpc: "2.0", id: req.id, result: block }));
-        } else if (req.method === "eth_subscribe") {
-          ws.send(JSON.stringify({ jsonrpc: "2.0", id: req.id, result: "0xsub" }));
-          if (opts.pushSub) {
-            ws.send(
-              JSON.stringify({
-                jsonrpc: "2.0",
-                method: "eth_subscription",
-                params: { subscription: "0xsub", result: { number: block } },
-              }),
-            );
-          }
-        } else {
-          ws.send(JSON.stringify({ jsonrpc: "2.0", id: req.id, result: null }));
+  const server = createServer();
+  const wss = new WebSocketServer({ server });
+  wss.on("connection", (ws) => {
+    ws.on("message", (data: Buffer) => {
+      const req = JSON.parse(data.toString()) as { id: unknown; method: string };
+      if (req.method === "eth_blockNumber") {
+        ws.send(JSON.stringify({ jsonrpc: "2.0", id: req.id, result: block }));
+      } else if (req.method === "eth_subscribe") {
+        ws.send(JSON.stringify({ jsonrpc: "2.0", id: req.id, result: "0xsub" }));
+        if (opts.pushSub) {
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              method: "eth_subscription",
+              params: { subscription: "0xsub", result: { number: block } },
+            }),
+          );
         }
-      },
-    },
+      } else {
+        ws.send(JSON.stringify({ jsonrpc: "2.0", id: req.id, result: null }));
+      }
+    });
   });
+  server.listen(0);
   servers.push(server);
-  return `ws://localhost:${server.port}`;
+  const { port } = server.address() as AddressInfo;
+  return `ws://localhost:${port}`;
 }
 
 describe("WsUpstream.probe", () => {
@@ -103,7 +110,7 @@ describe("WsSession relay", () => {
     );
 
     // Wait for the subscribe reply + the push notification.
-    await Bun.sleep(100);
+    await sleep(100);
     session.close();
 
     const parsed = received.map((r) => JSON.parse(r) as Record<string, unknown>);

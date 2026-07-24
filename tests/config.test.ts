@@ -1,11 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "./helpers.js";
 import {
   type AppConfig,
   ConfigError,
   loadConfig,
   mergeConfig,
   parseAppConfig,
-} from "../src/config";
+} from "../src/config.js";
 
 /** A minimal, valid complete config used as the merge base in tests. */
 const base: AppConfig = {

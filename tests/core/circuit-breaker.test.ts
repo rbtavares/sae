@@ -1,5 +1,5 @@
-import { describe, expect, test, setSystemTime, afterEach } from "bun:test";
-import { CircuitBreaker } from "../../src/core/circuit-breaker";
+import { CircuitBreaker } from "../../src/core/circuit-breaker.js";
+import { afterEach, describe, expect, setSystemTime, test } from "../helpers.js";
 
 const cfg = { failureThreshold: 3, cooldownMs: 30_000, halfOpenMaxProbes: 1 };
 

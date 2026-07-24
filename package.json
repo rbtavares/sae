@@ -1,34 +1,42 @@
 {
-  "name": "rpc-lb",
+  "name": "sae",
   "version": "1.0.0",
-  "module": "src/index.ts",
+  "description": "EVM JSON-RPC load balancer with health-aware failover and a live TUI.",
   "type": "module",
   "license": "MIT",
   "private": true,
+  "bin": {
+    "sae": "bin/sae.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "os": ["darwin", "linux", "win32"],
+  "files": ["dist", "bin", "default.config.json", "sae.schema.json"],
   "scripts": {
-    "start": "bun run src/index.ts",
-    "dev": "bun --watch src/index.ts",
-    "build": "bun build ./src/index.ts --compile --minify --outfile dist/sae && bun run build:config",
-    "build:config": "mkdir -p dist && cp default.config.json sae.schema.json dist/",
-    "build:all": "bun run build:darwin-arm64 && bun run build:darwin-x64 && bun run build:linux-x64 && bun run build:linux-arm64 && bun run build:config",
-    "build:darwin-arm64": "bun build ./src/index.ts --compile --minify --target=bun-darwin-arm64 --outfile dist/sae-darwin-arm64",
-    "build:darwin-x64": "bun build ./src/index.ts --compile --minify --target=bun-darwin-x64 --outfile dist/sae-darwin-x64",
-    "build:linux-x64": "bun build ./src/index.ts --compile --minify --target=bun-linux-x64 --outfile dist/sae-linux-x64",
-    "build:linux-arm64": "bun build ./src/index.ts --compile --minify --target=bun-linux-arm64 --outfile dist/sae-linux-arm64",
-    "typecheck": "tsgo --noEmit",
-    "test": "bun test",
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "start": "node bin/sae.mjs",
+    "dev": "tsc -p tsconfig.build.json && (tsc -p tsconfig.build.json --watch --preserveWatchOutput & node --watch dist/index.js)",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc -p tsconfig.test.json && node --test \"dist-test/tests/**/*.test.js\"",
     "lint": "oxlint src tests",
     "format": "oxfmt src tests",
     "format:check": "oxfmt --check src tests",
     "release": "release-it"
   },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
   "devDependencies": {
     "@release-it/conventional-changelog": "^11.0.1",
-    "@types/bun": "latest",
-    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.5.13",
     "oxfmt": "^0.59.0",
     "oxlint": "^1.74.0",
     "release-it": "^20.2.1",
-    "typescript": "^5"
-  }
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "pnpm@10.0.0"
 }

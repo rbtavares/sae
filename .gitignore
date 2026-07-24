@@ -1,9 +1,10 @@
-# dependencies (bun install)
+# dependencies
 node_modules
 
-# output
+# build output
 out
 dist
+dist-test
 *.tgz
 
 # user-owned runtime config (overrides default.config.json)

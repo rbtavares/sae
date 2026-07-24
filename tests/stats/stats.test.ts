@@ -1,11 +1,11 @@
-import { afterEach, describe, expect, test, setSystemTime } from "bun:test";
+import { afterEach, describe, expect, setSystemTime, test } from "../helpers.js";
 import {
   PerSecondCounter,
   RollingLatency,
   RollingWindow,
   SampleRing,
   sparkline,
-} from "../../src/stats/stats";
+} from "../../src/stats/stats.js";
 
 afterEach(() => setSystemTime());
 

@@ -1,6 +1,6 @@
-import type { BreakerConfig } from "../config";
-import { RollingWindow, SampleRing } from "../stats/stats";
-import { type BreakerState, CircuitBreaker } from "./circuit-breaker";
+import type { BreakerConfig } from "../config.js";
+import { RollingWindow, SampleRing } from "../stats/stats.js";
+import { type BreakerState, CircuitBreaker } from "./circuit-breaker.js";
 
 export type BreakerChangeListener = (
   host: string,

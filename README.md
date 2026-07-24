@@ -16,11 +16,11 @@ Self-hosted EVM RPC load balancer that pools upstream endpoints per chain behind
 
 ## Quick start
 
-Requires [Bun](https://bun.sh).
+Requires [Node.js](https://nodejs.org) 22+ and [pnpm](https://pnpm.io). No Bun.
 
 ```bash
-bun install
-bun run start              # start sae on http://0.0.0.0:8545
+pnpm install               # builds dist/ via the prepare hook
+pnpm start                 # start sae on http://0.0.0.0:8545
 ```
 
 Then point any EVM client at a chain slug:
@@ -35,22 +35,32 @@ Use `http://localhost:8545/<slug>` as the RPC URL in your wallet, framework, or
 scripts — e.g. `/eth` for Ethereum, `/arb` for Arbitrum. See
 [Chains](#chains) for the full list.
 
+## Installing the `sae` command
+
+Link the package globally to get a `sae` binary on your `PATH`, then run it from
+anywhere:
+
+```bash
+pnpm install               # builds dist/
+pnpm link --global         # exposes `sae`
+sae                        # start with the bundled defaults
+sae --port 9000 --chain eth --chain arb
+```
+
+`pnpm link --global` from another project (or `pnpm add <path-to-sae>`) makes the
+same command available there. To remove it: `pnpm uninstall --global sae`.
+
 ## Building
 
-Compile a self-contained, dependency-free binary — no Bun needed at runtime:
+The package is plain Node ESM compiled with `tsc`:
 
 ```bash
-bun run build              # host platform -> dist/sae
-./dist/sae                 # run it
+pnpm build                 # tsc -> dist/
+pnpm start                 # node bin/sae.mjs -> dist/index.js
 ```
 
-Cross-compile for all supported platforms (darwin/linux, arm64/x64):
-
-```bash
-bun run build:all          # -> dist/sae-<os>-<arch>
-```
-
-Ship the single binary file and run it directly.
+There's no separate binary to ship — install the package (or its
+`pnpm pack` tarball) and run the `sae` command on any machine with Node 22+.
 
 ## Endpoints
 
@@ -157,8 +167,8 @@ Flags override environment variables and defaults.
 | `-h, --help` | Show usage |
 
 ```bash
-./dist/sae --port 9000 --chain eth --chain arb      # production binary
-bun dev -- -p 9000 -c eth,arb                        # development
+sae --port 9000 --chain eth --chain arb              # linked command
+pnpm dev -- -p 9000 -c eth,arb                       # development, watch mode
 ```
 
 ### Environment variables
@@ -254,23 +264,24 @@ The `ChainConfig` / `BreakerConfig` / `AppConfig` types live in `src/config.ts`.
 ## Developing
 
 ```bash
-bun install
-bun run start              # run once from source
-bun dev                    # watch mode, restarts on file changes
+pnpm install               # builds dist/ (prepare hook)
+pnpm start                 # run once
+pnpm dev                   # watch mode (node --watch, strips TS types)
 ```
 
 Before committing:
 
 ```bash
-bun run typecheck          # tsgo --noEmit
-bun run lint               # oxlint
-bun run format             # oxfmt (or format:check to verify only)
-bun test                   # run the test suite
+pnpm run typecheck         # tsc --noEmit
+pnpm run lint              # oxlint
+pnpm run format            # oxfmt (or format:check to verify only)
+pnpm test                  # tsc + node --test
 ```
 
-Tests cover the circuit breaker state machine, balancer failover logic,
-WebSocket upstream handling, rolling stats, and sparkline rendering, using real
-local Bun HTTP/WS servers as fake upstreams — no mocks.
+Tests run on Node's built-in `node:test` runner and cover the circuit breaker
+state machine, balancer failover logic, WebSocket upstream handling, rolling
+stats, and sparkline rendering, using real local Node HTTP/WS servers (via the
+`ws` package) as fake upstreams — no mocks.
 
 ## License
 

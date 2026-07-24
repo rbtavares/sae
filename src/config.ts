@@ -1,3 +1,8 @@
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { dirname, join, parse as parsePath } from "node:path";
+import { fileURLToPath } from "node:url";
+
 export interface ChainConfig {
   /** Human-readable name. */
   name: string;
@@ -276,39 +281,51 @@ export function mergeConfig(base: AppConfig, raw: unknown): AppConfig {
 }
 
 /**
- * Directory the config files live in: alongside the running binary/script.
- *
- * When compiled with `bun build --compile`, `import.meta.dir` resolves inside
- * the embedded virtual filesystem (`/$bunfs/...`), where the sibling JSON files
- * don't exist. In that case we fall back to the directory of the real
- * executable (`process.execPath`) so the binary finds the `default.config.json`
- * shipped next to it. Run from source, `import.meta.dir` is the `src/` dir's
- * parent's `src` — i.e. next to `config.ts` — so we resolve relative to the
- * project root instead (one level up).
+ * Directory the config files live in: the nearest ancestor of this module that
+ * contains `default.config.json`. Walking up from the module URL (not the
+ * process cwd) means the `sae` command finds its bundled config regardless of
+ * where it's launched from, whether running as `dist/index.js` in an installed
+ * package or during tests. Falls back to the immediate parent directory.
  */
 export function configDir(): string {
-  const metaDir = import.meta.dir;
-  // Compiled single-file binary: files live next to the executable.
-  if (metaDir.startsWith("/$bunfs") || metaDir.startsWith("B:\\~BUN")) {
-    const exe = process.execPath;
-    const sep =
-      exe.lastIndexOf("/") === -1 ? exe.lastIndexOf("\\") : exe.lastIndexOf("/");
-    return sep === -1 ? "." : exe.slice(0, sep);
+  const start = dirname(fileURLToPath(import.meta.url));
+  let dir = start;
+  const { root } = parsePath(dir);
+  while (true) {
+    if (existsSync(join(dir, DEFAULT_CONFIG_FILE))) return dir;
+    if (dir === root) break;
+    dir = dirname(dir);
   }
-  // Run from source (src/config.ts): config files live in the project root.
-  return `${metaDir}/..`;
+  return join(start, "..");
 }
 
+/** Read + JSON-parse a file, mapping fs/parse errors to {@link ConfigError}. */
 async function readJson(path: string): Promise<unknown> {
-  const file = Bun.file(path);
-  if (!(await file.exists())) {
-    throw new ConfigError(`config file not found: ${path}`);
+  let text: string;
+  try {
+    text = await readFile(path, "utf8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new ConfigError(`config file not found: ${path}`);
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new ConfigError(`failed to read ${path}: ${msg}`);
   }
   try {
-    return JSON.parse(await file.text());
+    return JSON.parse(text);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     throw new ConfigError(`failed to parse ${path}: ${msg}`);
+  }
+}
+
+/** Whether a file exists and is readable. */
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await readFile(path);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -329,8 +346,8 @@ function applyEnv(cfg: AppConfig): AppConfig {
  * Load the runtime config. Reads the committed `default.config.json` as the
  * baseline, overlays the gitignored `config.json` when present, then applies
  * `PORT` / `HEALTH_CHECK_INTERVAL_MS` env overrides. Both files are read at
- * runtime via `Bun.file` from {@link configDir}, so a compiled binary ships
- * with its defaults beside it rather than embedding them at build time.
+ * runtime from {@link configDir}, so the installed package ships its defaults
+ * beside the code rather than embedding them at build time.
  *
  * @param explicitPath value of `--config` (overrides the user `config.json`
  *   location), or null to use the default resolution.
@@ -339,7 +356,7 @@ function applyEnv(cfg: AppConfig): AppConfig {
  */
 export async function loadConfig(explicitPath: string | null = null): Promise<AppConfig> {
   const dir = configDir();
-  const base = parseAppConfig(await readJson(`${dir}/${DEFAULT_CONFIG_FILE}`));
+  const base = parseAppConfig(await readJson(join(dir, DEFAULT_CONFIG_FILE)));
 
   let userPath: string | null = null;
   if (explicitPath) {
@@ -347,8 +364,8 @@ export async function loadConfig(explicitPath: string | null = null): Promise<Ap
   } else if (process.env.SAE_CONFIG) {
     userPath = process.env.SAE_CONFIG;
   } else {
-    const candidate = `${dir}/${USER_CONFIG_FILE}`;
-    if (await Bun.file(candidate).exists()) userPath = candidate;
+    const candidate = join(dir, USER_CONFIG_FILE);
+    if (await fileExists(candidate)) userPath = candidate;
   }
 
   const merged = userPath ? mergeConfig(base, await readJson(userPath)) : base;

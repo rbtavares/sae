@@ -1,4 +1,4 @@
-import type { BreakerConfig } from "../config";
+import type { BreakerConfig } from "../config.js";
 
 export type BreakerState = "closed" | "open" | "half-open";
 
