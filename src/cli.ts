@@ -5,6 +5,8 @@ export interface CliOptions {
   port: number | null;
   /** Restrict to these chain slugs, or null to serve all configured chains. */
   chains: string[] | null;
+  /** Path to a JSON config file, or null to auto-resolve (env / cwd / baked). */
+  configPath: string | null;
 }
 
 const USAGE = `sae — EVM JSON-RPC load balancer
@@ -14,6 +16,7 @@ Usage: sae [options]
 Options:
   -p, --port <number>   Port to listen on (overrides PORT env)
   -c, --chain <slug>    Serve only this chain; repeat for several (e.g. -c eth -c arb)
+      --config <path>   Path to a user config JSON file (overrides SAE_CONFIG / config.json)
   -h, --help            Show this help
 `;
 
@@ -24,6 +27,7 @@ Options:
  */
 export function parseArgs(argv: string[]): CliOptions {
   let port: number | null = null;
+  let configPath: string | null = null;
   const chains: string[] = [];
 
   const fail = (msg: string): never => {
@@ -78,12 +82,15 @@ export function parseArgs(argv: string[]): CliOptions {
         }
         break;
       }
+      case "--config":
+        configPath = takeValue(flag);
+        break;
       default:
         fail(`unknown option: ${arg}`);
     }
   }
 
-  return { port, chains: chains.length > 0 ? chains : null };
+  return { port, chains: chains.length > 0 ? chains : null, configPath };
 }
 
 /**

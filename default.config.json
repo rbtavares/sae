@@ -1,0 +1,319 @@
+{
+  "$schema": "./sae.schema.json",
+  "port": 8545,
+  "healthCheckIntervalMs": 30000,
+  "maxLagBlocks": 5,
+  "breaker": {
+    "failureThreshold": 3,
+    "cooldownMs": 30000,
+    "halfOpenMaxProbes": 1
+  },
+  "chains": [
+    {
+      "name": "Arbitrum One",
+      "slug": "arb",
+      "chainId": 42161,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 6,
+      "upstreams": [
+        "https://arb1.arbitrum.io/rpc",
+        "https://1rpc.io/arb",
+        "https://arbitrum-one-public.nodies.app",
+        "https://arbitrum-one.public.blastapi.io",
+        "https://arbitrum-one-rpc.publicnode.com",
+        "https://arbitrum.meowrpc.com",
+        "https://api.zan.top/arb-one",
+        "https://arbitrum.drpc.org",
+        "https://arbitrum.gateway.tenderly.co",
+        "https://arb1.lava.build",
+        "https://arb-one.api.pocket.network",
+        "https://public-arb-mainnet.fastnode.io",
+        "https://arbitrum-one.rpc.sentio.xyz",
+        "https://arb-rpc.keccak.io"
+      ],
+      "wsUpstreams": ["wss://arbitrum-one-rpc.publicnode.com", "wss://arbitrum.drpc.org"]
+    },
+    {
+      "name": "Base",
+      "slug": "base",
+      "chainId": 8453,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 6,
+      "upstreams": [
+        "https://mainnet.base.org",
+        "https://developer-access-mainnet.base.org",
+        "https://base.public.blockpi.network/v1/rpc/public",
+        "https://1rpc.io/base",
+        "https://base-public.nodies.app",
+        "https://base.meowrpc.com",
+        "https://base-mainnet.public.blastapi.io",
+        "https://base.gateway.tenderly.co",
+        "https://gateway.tenderly.co/public/base",
+        "https://base-rpc.publicnode.com",
+        "https://base.drpc.org",
+        "https://api.zan.top/base-mainnet",
+        "https://base.lava.build",
+        "https://base.api.pocket.network",
+        "https://base.rpc.blxrbdn.com",
+        "https://base.rpc.sentio.xyz",
+        "https://base-rpc.keccak.io"
+      ],
+      "wsUpstreams": [
+        "wss://base-rpc.publicnode.com",
+        "wss://base.drpc.org",
+        "wss://base.gateway.tenderly.co"
+      ]
+    },
+    {
+      "name": "Berachain",
+      "slug": "berachain",
+      "chainId": 80094,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 4,
+      "upstreams": [
+        "https://rpc.berachain.com",
+        "https://berachain-rpc.publicnode.com",
+        "https://berachain.drpc.org",
+        "https://rpc.berachain-apis.com",
+        "https://berachain.rpc.sentio.xyz"
+      ],
+      "wsUpstreams": [
+        "wss://berachain.drpc.org",
+        "wss://rpc.berachain-apis.com",
+        "wss://berachain-rpc.publicnode.com"
+      ]
+    },
+    {
+      "name": "BNB Smart Chain",
+      "slug": "bnb",
+      "chainId": 56,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 6,
+      "upstreams": [
+        "https://bsc-dataseed.bnbchain.org",
+        "https://bsc-dataseed1.defibit.io",
+        "https://bsc-dataseed1.ninicoin.io",
+        "https://bsc-dataseed2.defibit.io",
+        "https://bsc-dataseed3.defibit.io",
+        "https://bsc-dataseed4.defibit.io",
+        "https://bsc-dataseed2.ninicoin.io",
+        "https://bsc-dataseed3.ninicoin.io",
+        "https://bsc-dataseed1.bnbchain.org",
+        "https://bsc-dataseed2.bnbchain.org",
+        "https://bsc-dataseed3.bnbchain.org",
+        "https://bsc-dataseed4.bnbchain.org",
+        "https://rpc-bsc.48.club",
+        "https://0.48.club",
+        "https://binance-smart-chain-public.nodies.app",
+        "https://binance.nodereal.io",
+        "https://bsc.rpc.blxrbdn.com",
+        "https://bnb.api.onfinality.io/public",
+        "https://bsc-rpc.publicnode.com",
+        "https://bsc-mainnet.public.blastapi.io",
+        "https://bsc.meowrpc.com",
+        "https://api.zan.top/bsc-mainnet",
+        "https://bsc.drpc.org",
+        "https://public-bsc.nownodes.io",
+        "https://bsc.blockrazor.xyz",
+        "https://bsc.api.pocket.network",
+        "https://public-bsc-mainnet.fastnode.io",
+        "https://bsc.rpc.sentio.xyz",
+        "https://bsc-rpc.keccak.io"
+      ],
+      "wsUpstreams": ["wss://bsc-rpc.publicnode.com", "wss://bsc.drpc.org"]
+    },
+    {
+      "name": "Ethereum Mainnet",
+      "slug": "eth",
+      "chainId": 1,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 6,
+      "upstreams": [
+        "https://ethereum-rpc.publicnode.com",
+        "https://1rpc.io/eth",
+        "https://rpc.mevblocker.io",
+        "https://rpc.flashbots.net",
+        "https://virginia.rpc.blxrbdn.com",
+        "https://uk.rpc.blxrbdn.com",
+        "https://singapore.rpc.blxrbdn.com",
+        "https://eth.rpc.blxrbdn.com",
+        "https://eth-mainnet.public.blastapi.io",
+        "https://ethereum.public.blockpi.network/v1/rpc/public",
+        "https://rpc.eth.gateway.fm",
+        "https://eth.meowrpc.com",
+        "https://eth.drpc.org",
+        "https://mainnet.gateway.tenderly.co",
+        "https://gateway.tenderly.co/public/mainnet",
+        "https://api.zan.top/eth-mainnet",
+        "https://public-eth.nownodes.io",
+        "https://eth.blockrazor.xyz",
+        "https://eth1.lava.build",
+        "https://0xrpc.io/eth",
+        "https://eth.api.onfinality.io/public",
+        "https://ethereum-json-rpc.stakely.io",
+        "https://eth.api.pocket.network",
+        "https://rpc.fullsend.to",
+        "https://mainnet.rpc.sentio.xyz",
+        "https://rpc-eth.blockmachine.io",
+        "https://eth-rpc.keccak.io",
+        "https://rpc.flashbots.net/fast",
+        "https://rpc.mevblocker.io/fast",
+        "https://rpc.mevblocker.io/noreverts",
+        "https://rpc.mevblocker.io/fullprivacy"
+      ],
+      "wsUpstreams": [
+        "wss://ethereum-rpc.publicnode.com",
+        "wss://eth.drpc.org",
+        "wss://mainnet.gateway.tenderly.co"
+      ]
+    },
+    {
+      "name": "Gnosis Chain",
+      "slug": "gnosis",
+      "chainId": 100,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 5,
+      "upstreams": [
+        "https://rpc.gnosischain.com",
+        "https://rpc.gnosis.gateway.fm",
+        "https://rpc.ap-southeast-1.gateway.fm/v4/gnosis/non-archival/mainnet",
+        "https://gnosis.drpc.org",
+        "https://gnosis-rpc.publicnode.com",
+        "https://1rpc.io/gnosis",
+        "https://gnosis.api.pocket.network",
+        "https://public-gno-mainnet.fastnode.io",
+        "https://gnosis.oat.farm"
+      ],
+      "wsUpstreams": [
+        "wss://gnosis-rpc.publicnode.com",
+        "wss://gnosis.drpc.org",
+        "wss://rpc.gnosischain.com/wss"
+      ]
+    },
+    {
+      "name": "HyperEVM",
+      "slug": "hyperevm",
+      "chainId": 999,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 5,
+      "upstreams": [
+        "https://hyperevm.rpc.sentio.xyz",
+        "https://rpc.hyperliquid.xyz/evm",
+        "https://rpc.hypurrscan.io",
+        "https://hyperliquid-json-rpc.stakely.io",
+        "https://hyperliquid.drpc.org",
+        "https://rpc.hyperlend.finance",
+        "https://hyperliquid.api.onfinality.io/evm/public",
+        "https://hyperliquid.rpc.blxrbdn.com"
+      ],
+      "wsUpstreams": ["wss://hyperliquid.drpc.org"]
+    },
+    {
+      "name": "MegaETH",
+      "slug": "megaeth",
+      "chainId": 4326,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 1,
+      "upstreams": [
+        "https://rpc-megaeth-mainnet.globalstake.io",
+        "https://megaeth.drpc.org",
+        "https://mainnet.megaeth.com/rpc",
+        "https://megaeth.gateway.tenderly.co"
+      ],
+      "wsUpstreams": ["wss://megaeth.drpc.org", "wss://megaeth.gateway.tenderly.co"]
+    },
+    {
+      "name": "Monad",
+      "slug": "monad",
+      "chainId": 143,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 4,
+      "upstreams": [
+        "https://monad-mainnet.drpc.org",
+        "https://monad-mainnet-rpc.spidernode.net",
+        "https://infra.originstake.com/monad/evm",
+        "https://monad-mainnet.rpc.sentio.xyz",
+        "https://monad-rpc.huginn.tech",
+        "https://gm.monad.at.htw.tech",
+        "https://rpc.monad.xyz",
+        "https://rpc1.monad.xyz",
+        "https://rpc3.monad.xyz",
+        "https://rpc4.monad.xyz",
+        "https://rpc-mainnet.monadinfra.com",
+        "https://monad.rpc.blxrbdn.com"
+      ],
+      "wsUpstreams": ["wss://wss.monad-rpc.huginn.tech", "wss://gm.monad.at.htw.tech"]
+    },
+    {
+      "name": "OP Mainnet",
+      "slug": "op",
+      "chainId": 10,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 6,
+      "upstreams": [
+        "https://mainnet.optimism.io",
+        "https://optimism-public.nodies.app",
+        "https://optimism.public.blockpi.network/v1/rpc/public",
+        "https://optimism-rpc.publicnode.com",
+        "https://api.zan.top/opt-mainnet",
+        "https://optimism.drpc.org",
+        "https://optimism.gateway.tenderly.co",
+        "https://gateway.tenderly.co/public/optimism",
+        "https://public-op-mainnet.fastnode.io",
+        "https://optimism.rpc.sentio.xyz",
+        "https://op-rpc.keccak.io"
+      ],
+      "wsUpstreams": [
+        "wss://optimism-rpc.publicnode.com",
+        "wss://optimism.gateway.tenderly.co",
+        "wss://optimism.drpc.org"
+      ]
+    },
+    {
+      "name": "Plasma",
+      "slug": "plasma",
+      "chainId": 9745,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 1,
+      "upstreams": [
+        "https://plasma.drpc.org",
+        "https://plasma.api.onfinality.io/public",
+        "https://rpc.swiftnodes.io/rpc/plasma",
+        "https://plasma-mainnet.gateway.tatum.io",
+        "https://rpc.plasma.to"
+      ],
+      "wsUpstreams": ["wss://plasma.drpc.org"]
+    },
+    {
+      "name": "Polygon",
+      "slug": "polygon",
+      "chainId": 137,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 6,
+      "upstreams": [
+        "https://rpc-mainnet.matic.quiknode.pro",
+        "https://polygon-public.nodies.app",
+        "https://1rpc.io/matic",
+        "https://polygon-bor-rpc.publicnode.com",
+        "https://polygon.drpc.org",
+        "https://polygon.gateway.tenderly.co",
+        "https://gateway.tenderly.co/public/polygon",
+        "https://api.zan.top/polygon-mainnet",
+        "https://polygon.lava.build",
+        "https://poly.api.pocket.network",
+        "https://rpc.sentio.xyz/matic",
+        "https://matic.rpc.sentio.xyz",
+        "https://polygon-rpc.keccak.io"
+      ],
+      "wsUpstreams": ["wss://polygon-bor-rpc.publicnode.com", "wss://polygon.drpc.org"]
+    },
+    {
+      "name": "Robinhood Chain",
+      "slug": "robinhood",
+      "chainId": 4663,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 1,
+      "upstreams": ["https://rpc.mainnet.chain.robinhood.com"]
+    }
+  ]
+}

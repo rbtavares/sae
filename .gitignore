@@ -6,6 +6,9 @@ out
 dist
 *.tgz
 
+# user-owned runtime config (overrides default.config.json)
+config.json
+
 # code coverage
 coverage
 *.lcov

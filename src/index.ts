@@ -1,5 +1,5 @@
 import { parseArgs, selectChains } from "./cli";
-import { config } from "./config";
+import { ConfigError, loadConfig } from "./config";
 import { type BalancerEvents, ChainBalancer } from "./core/balancer";
 import type { WsSession } from "./core/ws-upstream";
 import { ChainMetrics } from "./stats/stats";
@@ -23,6 +23,19 @@ const CORS_HEADERS = {
 // CLI flags win over env/defaults. `--port` overrides the listen port and
 // `--chain` narrows the served chains (repeatable / comma-separated).
 const cli = parseArgs(Bun.argv.slice(2));
+
+// Load config from the external JSON file (if any), then apply CLI overrides.
+// A malformed file is a fatal, clearly-reported startup error.
+const config = await loadConfig(cli.configPath).catch((err: unknown) => {
+  if (err instanceof ConfigError) {
+    process.stderr.write(`error: ${err.message}\n`);
+  } else {
+    const message = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`error: failed to load config: ${message}\n`);
+  }
+  process.exit(1);
+});
+
 if (cli.port !== null) config.port = cli.port;
 config.chains = selectChains(config.chains, cli.chains);
 

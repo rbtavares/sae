@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/lighthouse-engineering/sae/sae.schema.json",
+  "title": "sae config",
+  "description": "Configuration for the sae EVM JSON-RPC load balancer. default.config.json must be complete; a user config.json may override any subset.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference for editor tooling."
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535,
+      "description": "TCP port to listen on. Overridden by the PORT env var and --port flag."
+    },
+    "healthCheckIntervalMs": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Interval between upstream health-check rounds, in milliseconds."
+    },
+    "maxLagBlocks": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Upstreams more than this many blocks behind the best-known head are deprioritized (not removed)."
+    },
+    "breaker": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Per-upstream circuit-breaker thresholds.",
+      "properties": {
+        "failureThreshold": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Consecutive failures before the circuit opens."
+        },
+        "cooldownMs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "How long the circuit stays open before allowing a half-open probe, in milliseconds."
+        },
+        "halfOpenMaxProbes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Concurrent probe requests allowed while half-open."
+        }
+      },
+      "required": ["failureThreshold", "cooldownMs", "halfOpenMaxProbes"]
+    },
+    "chains": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Chains to serve. In a user config.json this replaces the default list wholesale.",
+      "items": { "$ref": "#/$defs/chain" }
+    }
+  },
+  "$defs": {
+    "chain": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable chain name."
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$",
+          "description": "URL path segment, e.g. \"eth\" -> POST /eth and wss://.../eth. Lowercase letters, digits, hyphens."
+        },
+        "chainId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "EVM chain ID."
+        },
+        "upstreams": {
+          "type": "array",
+          "minItems": 1,
+          "description": "HTTP(S) RPC endpoints, tried in health/latency order.",
+          "items": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://",
+            "description": "http:// or https:// URL."
+          }
+        },
+        "wsUpstreams": {
+          "type": "array",
+          "description": "Optional WebSocket RPC endpoints. Omit to disable WS for this chain.",
+          "items": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^wss?://",
+            "description": "ws:// or wss:// URL."
+          }
+        },
+        "requestTimeoutMs": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Per-attempt request timeout, in milliseconds."
+        },
+        "maxAttempts": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Max upstreams tried per incoming request."
+        }
+      },
+      "required": [
+        "name",
+        "slug",
+        "chainId",
+        "upstreams",
+        "requestTimeoutMs",
+        "maxAttempts"
+      ]
+    }
+  }
+}

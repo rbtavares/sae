@@ -70,7 +70,7 @@ WebSocket upgrades are accepted on the same `/<slug>` path and proxied sticky to
 
 sae works with **any EVM chain** — there's nothing chain-specific in the proxy.
 A chain is just a config entry: a slug, a chain ID, and a list of upstream RPC
-endpoints. Add, remove, or swap any of them in `src/config.ts`.
+endpoints. Add, remove, or swap any of them in a [config file](#config-file).
 
 The following ship preconfigured out of the box, each with a curated set of free
 public RPCs:
@@ -92,7 +92,7 @@ public RPCs:
 | Robinhood Chain | `robinhood` | 4663 | 1 | 0 |
 
 13 chains, 169 HTTP and 27 WebSocket upstreams out of the box. See
-[Adding a chain](#adding-a-chain) to configure your own.
+the [Config file](#config-file) to configure your own.
 
 ## How it works
 
@@ -121,7 +121,7 @@ closed ──(3 consecutive failures)──► open ──(30s cooldown)──�
 - **Open**: all requests rejected, upstream gets rest
 - **Half-open**: 1 probe allowed; success closes, failure re-opens
 
-Thresholds are configurable (see [Breaker tuning](#breaker-tuning)).
+Thresholds are configurable (see [Config file](#config-file)).
 
 ### Health probes
 
@@ -153,6 +153,7 @@ Flags override environment variables and defaults.
 |------|-------------|
 | `-p, --port <number>` | Listen port (overrides `PORT`) |
 | `-c, --chain <slug>` | Serve only this chain; repeatable or comma-separated (e.g. `-c eth -c arb` or `-c eth,arb`) |
+| `--config <path>` | Path to a user config JSON file (overrides `SAE_CONFIG` and `config.json`) |
 | `-h, --help` | Show usage |
 
 ```bash
@@ -167,45 +168,88 @@ bun dev -- -p 9000 -c eth,arb                        # development
 | `PORT` | `8545` | Listen port |
 | `HOST` | `0.0.0.0` | Bind address |
 | `HEALTH_CHECK_INTERVAL_MS` | `30000` | Health probe interval |
+| `SAE_CONFIG` | — | Path to the user config file (see [Config file](#config-file)) |
 | `NO_COLOR` | — | Disable ANSI colors |
 | `FORCE_COLOR` | — | Force colors even without TTY |
 | `NO_TUI` | — | Disable split-screen TUI, use plain logging |
 
-### Adding a chain
+### Config file
 
-Add an entry to `config.chains` in `src/config.ts`:
+Config is plain JSON, loaded at **runtime** — so you tune the compiled binary
+without rebuilding. Two files, resolved next to the binary (or the project root
+when run from source):
 
-```ts
+- **`default.config.json`** — ships with the repo and the binary. The complete
+  baseline: port, breaker, and all chains. Every field is required here.
+- **`config.json`** — your override. **Gitignored**, so it never conflicts with
+  updates. Create it to change any subset of the defaults; anything you omit
+  falls back to `default.config.json`.
+
+On startup sae reads `default.config.json`, overlays `config.json` (if present),
+then applies `PORT` / `HEALTH_CHECK_INTERVAL_MS` env overrides and finally the
+CLI flags. A malformed file is a fatal startup error with a clear message (no
+requests are served).
+
+Resolution of the user override, in order:
+
+1. `--config <path>` flag
+2. `SAE_CONFIG` environment variable
+3. `config.json` beside the binary / in the project root
+
+To customize, copy `default.config.json` to `config.json` and edit — or write a
+minimal `config.json` with just the fields you want to change:
+
+```json
 {
-  name: "Arbitrum One",
-  slug: "arb",           // -> POST /arb  and  wss://.../arb
-  chainId: 42161,
-  requestTimeoutMs: 5_000,
-  maxAttempts: 4,
-  upstreams: [
-    "https://arb1.arbitrum.io/rpc",
-    "https://arbitrum.drpc.org",
-    // ...
-  ],
-  wsUpstreams: [           // optional; omit to disable WS for this chain
-    "wss://arbitrum.drpc.org",
-  ],
-},
+  "port": 8545,
+  "maxLagBlocks": 5,
+  "breaker": {
+    "failureThreshold": 3,
+    "cooldownMs": 30000,
+    "halfOpenMaxProbes": 1
+  },
+  "chains": [
+    {
+      "name": "Arbitrum One",
+      "slug": "arb",
+      "chainId": 42161,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 4,
+      "upstreams": [
+        "https://arb1.arbitrum.io/rpc",
+        "https://arbitrum.drpc.org"
+      ],
+      "wsUpstreams": [
+        "wss://arbitrum.drpc.org"
+      ]
+    }
+  ]
+}
 ```
 
-### Breaker tuning
+Field notes: `slug` maps to `POST /arb` and `wss://.../arb` (lowercase letters,
+digits, hyphens); `wsUpstreams` is optional (omit to disable WS for that chain);
+`maxLagBlocks` deprioritizes (does not remove) upstreams more than N blocks
+behind the best-known head. Providing `chains` replaces the list **wholesale**
+(not merged per-chain), so include every chain you want served.
 
-In `src/config.ts`:
+#### Validation
 
-```ts
-breaker: {
-  failureThreshold: 3,    // consecutive failures to open
-  cooldownMs: 30_000,     // open duration before half-open probe
-  halfOpenMaxProbes: 1,   // concurrent probes in half-open state
-},
-```
+Config is validated on two levels:
 
-`maxLagBlocks: 5` — upstreams more than 5 blocks behind the best head are deprioritized (not removed).
+- **Editor (before running).** `sae.schema.json` is a JSON Schema shipped with
+  the repo and binary. Referencing it via `"$schema": "./sae.schema.json"` (as
+  `default.config.json` does) gives autocomplete and inline error squiggles in
+  VS Code and most editors.
+- **Startup (before serving).** Every value is checked at load time and a bad
+  config is a **fatal error** — the server refuses to start rather than serve a
+  half-broken setup. Checks include: `port` in `1..65535`; all durations and
+  counts are positive integers; `chainId` a positive integer; `upstreams` valid
+  `http(s)` URLs and `wsUpstreams` valid `ws(s)` URLs; `slug` matches
+  `[a-z0-9-]` and is unique. **Unknown keys are rejected**, so a typo like
+  `maxAttempt` or `chian` fails loudly instead of being silently dropped.
+
+The `ChainConfig` / `BreakerConfig` / `AppConfig` types live in `src/config.ts`.
 
 ## Developing
 

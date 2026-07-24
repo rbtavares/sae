@@ -37,331 +37,320 @@ export interface AppConfig {
   chains: ChainConfig[];
 }
 
-export const config: AppConfig = {
-  port: Number(process.env.PORT ?? 8545),
-  healthCheckIntervalMs: Number(process.env.HEALTH_CHECK_INTERVAL_MS ?? 30_000),
-  maxLagBlocks: 5,
-  breaker: {
-    failureThreshold: 3,
-    cooldownMs: 30_000,
-    halfOpenMaxProbes: 1,
-  },
-  chains: [
-    {
-      name: "Arbitrum One",
-      slug: "arb",
-      chainId: 42161,
-      requestTimeoutMs: 5000,
-      maxAttempts: 6,
-      upstreams: [
-        "https://arb1.arbitrum.io/rpc",
-        "https://1rpc.io/arb",
-        "https://arbitrum-one-public.nodies.app",
-        "https://arbitrum-one.public.blastapi.io",
-        "https://arbitrum-one-rpc.publicnode.com",
-        "https://arbitrum.meowrpc.com",
-        "https://api.zan.top/arb-one",
-        "https://arbitrum.drpc.org",
-        "https://arbitrum.gateway.tenderly.co",
-        "https://arb1.lava.build",
-        "https://arb-one.api.pocket.network",
-        "https://public-arb-mainnet.fastnode.io",
-        "https://arbitrum-one.rpc.sentio.xyz",
-        "https://arb-rpc.keccak.io",
-      ],
-      wsUpstreams: ["wss://arbitrum-one-rpc.publicnode.com", "wss://arbitrum.drpc.org"],
-    },
-    {
-      name: "Base",
-      slug: "base",
-      chainId: 8453,
-      requestTimeoutMs: 5000,
-      maxAttempts: 6,
-      upstreams: [
-        "https://mainnet.base.org",
-        "https://developer-access-mainnet.base.org",
-        "https://base.public.blockpi.network/v1/rpc/public",
-        "https://1rpc.io/base",
-        "https://base-public.nodies.app",
-        "https://base.meowrpc.com",
-        "https://base-mainnet.public.blastapi.io",
-        "https://base.gateway.tenderly.co",
-        "https://gateway.tenderly.co/public/base",
-        "https://base-rpc.publicnode.com",
-        "https://base.drpc.org",
-        "https://api.zan.top/base-mainnet",
-        "https://base.lava.build",
-        "https://base.api.pocket.network",
-        "https://base.rpc.blxrbdn.com",
-        "https://base.rpc.sentio.xyz",
-        "https://base-rpc.keccak.io",
-      ],
-      wsUpstreams: [
-        "wss://base-rpc.publicnode.com",
-        "wss://base.drpc.org",
-        "wss://base.gateway.tenderly.co",
-      ],
-    },
-    {
-      name: "Berachain",
-      slug: "berachain",
-      chainId: 80094,
-      requestTimeoutMs: 5000,
-      maxAttempts: 4,
-      upstreams: [
-        "https://rpc.berachain.com",
-        "https://berachain-rpc.publicnode.com",
-        "https://berachain.drpc.org",
-        "https://rpc.berachain-apis.com",
-        "https://berachain.rpc.sentio.xyz",
-      ],
-      wsUpstreams: [
-        "wss://berachain.drpc.org",
-        "wss://rpc.berachain-apis.com",
-        "wss://berachain-rpc.publicnode.com",
-      ],
-    },
-    {
-      name: "BNB Smart Chain",
-      slug: "bnb",
-      chainId: 56,
-      requestTimeoutMs: 5000,
-      maxAttempts: 6,
-      upstreams: [
-        "https://bsc-dataseed.bnbchain.org",
-        "https://bsc-dataseed1.defibit.io",
-        "https://bsc-dataseed1.ninicoin.io",
-        "https://bsc-dataseed2.defibit.io",
-        "https://bsc-dataseed3.defibit.io",
-        "https://bsc-dataseed4.defibit.io",
-        "https://bsc-dataseed2.ninicoin.io",
-        "https://bsc-dataseed3.ninicoin.io",
-        "https://bsc-dataseed4.ninicoin.io",
-        "https://bsc-dataseed1.bnbchain.org",
-        "https://bsc-dataseed2.bnbchain.org",
-        "https://bsc-dataseed3.bnbchain.org",
-        "https://bsc-dataseed4.bnbchain.org",
-        "https://rpc-bsc.48.club",
-        "https://0.48.club",
-        "https://binance-smart-chain-public.nodies.app",
-        "https://binance.nodereal.io",
-        "https://1rpc.io/bnb",
-        "https://bsc.rpc.blxrbdn.com",
-        "https://bnb.api.onfinality.io/public",
-        "https://bsc-rpc.publicnode.com",
-        "https://bsc-mainnet.public.blastapi.io",
-        "https://bsc.meowrpc.com",
-        "https://api.zan.top/bsc-mainnet",
-        "https://bsc.drpc.org",
-        "https://public-bsc.nownodes.io",
-        "https://bsc.blockrazor.xyz",
-        "https://bsc.api.pocket.network",
-        "https://public-bsc-mainnet.fastnode.io",
-        "https://bsc.rpc.sentio.xyz",
-        "https://bsc-rpc.keccak.io",
-      ],
-      wsUpstreams: ["wss://bsc-rpc.publicnode.com", "wss://bsc.drpc.org"],
-    },
-    {
-      name: "Ethereum Mainnet",
-      slug: "eth",
-      chainId: 1,
-      requestTimeoutMs: 5000,
-      maxAttempts: 6,
-      upstreams: [
-        "https://rpc.nodeflare.app/eth/public",
-        "https://ethereum-rpc.publicnode.com",
-        "https://1rpc.io/eth",
-        "https://rpc.mevblocker.io",
-        "https://rpc.flashbots.net",
-        "https://virginia.rpc.blxrbdn.com",
-        "https://uk.rpc.blxrbdn.com",
-        "https://singapore.rpc.blxrbdn.com",
-        "https://eth.rpc.blxrbdn.com",
-        "https://cloudflare-eth.com",
-        "https://eth-mainnet.public.blastapi.io",
-        "https://ethereum-public.nodies.app",
-        "https://ethereum.public.blockpi.network/v1/rpc/public",
-        "https://rpc.eth.gateway.fm",
-        "https://eth.meowrpc.com",
-        "https://eth.drpc.org",
-        "https://mainnet.gateway.tenderly.co",
-        "https://gateway.tenderly.co/public/mainnet",
-        "https://api.zan.top/eth-mainnet",
-        "https://public-eth.nownodes.io",
-        "https://eth.blockrazor.xyz",
-        "https://eth1.lava.build",
-        "https://0xrpc.io/eth",
-        "https://eth.api.onfinality.io/public",
-        "https://ethereum-json-rpc.stakely.io",
-        "https://eth.api.pocket.network",
-        "https://rpc.fullsend.to",
-        "https://mainnet.rpc.sentio.xyz",
-        "https://rpc-eth.blockmachine.io",
-        "https://eth-rpc.keccak.io",
-        "https://rpc.flashbots.net/fast",
-        "https://rpc.mevblocker.io/fast",
-        "https://rpc.mevblocker.io/noreverts",
-        "https://rpc.mevblocker.io/fullprivacy",
-      ],
-      wsUpstreams: [
-        "wss://ethereum-rpc.publicnode.com",
-        "wss://eth.drpc.org",
-        "wss://mainnet.gateway.tenderly.co",
-      ],
-    },
-    {
-      name: "Gnosis Chain",
-      slug: "gnosis",
-      chainId: 100,
-      requestTimeoutMs: 5000,
-      maxAttempts: 5,
-      upstreams: [
-        "https://rpc.gnosischain.com",
-        "https://rpc.gnosis.gateway.fm",
-        "https://rpc.ap-southeast-1.gateway.fm/v4/gnosis/non-archival/mainnet",
-        "https://gnosis.drpc.org",
-        "https://gnosis-rpc.publicnode.com",
-        "https://1rpc.io/gnosis",
-        "https://gnosis.api.pocket.network",
-        "https://public-gno-mainnet.fastnode.io",
-        "https://rpc.ankr.com/gnosis",
-        "https://gnosis.oat.farm",
-      ],
-      wsUpstreams: [
-        "wss://gnosis-rpc.publicnode.com",
-        "wss://gnosis.drpc.org",
-        "wss://rpc.gnosischain.com/wss",
-      ],
-    },
-    {
-      name: "HyperEVM",
-      slug: "hyperevm",
-      chainId: 999,
-      requestTimeoutMs: 5000,
-      maxAttempts: 5,
-      upstreams: [
-        "https://rpc.nodeflare.app/hl/public",
-        "https://hyperevm.rpc.sentio.xyz",
-        "https://rpc.hyperliquid.xyz/evm",
-        "https://rpc.hypurrscan.io",
-        "https://hyperliquid-json-rpc.stakely.io",
-        "https://hyperliquid.drpc.org",
-        "https://rpc.hyperlend.finance",
-        "https://hyperliquid.api.onfinality.io/evm/public",
-        "https://hyperliquid.rpc.blxrbdn.com",
-      ],
-      wsUpstreams: ["wss://hyperliquid.drpc.org"],
-    },
-    {
-      name: "MegaETH",
-      slug: "megaeth",
-      chainId: 4326,
-      requestTimeoutMs: 5000,
-      maxAttempts: 1,
-      upstreams: [
-        "https://rpc-megaeth-mainnet.globalstake.io",
-        "https://megaeth.drpc.org",
-        "https://mainnet.megaeth.com/rpc",
-        "https://megaeth.gateway.tenderly.co",
-      ],
-      wsUpstreams: ["wss://megaeth.drpc.org", "wss://megaeth.gateway.tenderly.co"],
-    },
-    {
-      name: "Monad",
-      slug: "monad",
-      chainId: 143,
-      requestTimeoutMs: 5000,
-      maxAttempts: 4,
-      upstreams: [
-        "https://monad-mainnet.drpc.org",
-        "https://monad-mainnet-rpc.spidernode.net",
-        "https://infra.originstake.com/monad/evm",
-        "https://monad-mainnet.rpc.sentio.xyz",
-        "https://monad-rpc.huginn.tech",
-        "https://gm.monad.at.htw.tech",
-        "https://rpc.monad.xyz",
-        "https://rpc1.monad.xyz",
-        "https://rpc2.monad.xyz",
-        "https://rpc3.monad.xyz",
-        "https://rpc4.monad.xyz",
-        "https://rpc-mainnet.monadinfra.com",
-        "https://monad.rpc.blxrbdn.com",
-      ],
-      wsUpstreams: ["wss://wss.monad-rpc.huginn.tech", "wss://gm.monad.at.htw.tech"],
-    },
-    {
-      name: "OP Mainnet",
-      slug: "op",
-      chainId: 10,
-      requestTimeoutMs: 5000,
-      maxAttempts: 6,
-      upstreams: [
-        "https://mainnet.optimism.io",
-        "https://1rpc.io/op",
-        "https://optimism-public.nodies.app",
-        "https://optimism.public.blockpi.network/v1/rpc/public",
-        "https://optimism-rpc.publicnode.com",
-        "https://api.zan.top/opt-mainnet",
-        "https://optimism.drpc.org",
-        "https://optimism.gateway.tenderly.co",
-        "https://gateway.tenderly.co/public/optimism",
-        "https://public-op-mainnet.fastnode.io",
-        "https://optimism.rpc.sentio.xyz",
-        "https://op-rpc.keccak.io",
-      ],
-      wsUpstreams: [
-        "wss://optimism-rpc.publicnode.com",
-        "wss://optimism.gateway.tenderly.co",
-        "wss://optimism.drpc.org",
-      ],
-    },
-    {
-      name: "Plasma",
-      slug: "plasma",
-      chainId: 9745,
-      requestTimeoutMs: 5000,
-      maxAttempts: 1,
-      upstreams: [
-        "https://plasma.drpc.org",
-        "https://plasma.api.onfinality.io/public",
-        "https://rpc.swiftnodes.io/rpc/plasma",
-        "https://plasma-mainnet.gateway.tatum.io",
-        "https://rpc.plasma.to",
-      ],
-      wsUpstreams: ["wss://plasma.drpc.org"],
-    },
-    {
-      name: "Polygon",
-      slug: "polygon",
-      chainId: 137,
-      requestTimeoutMs: 5000,
-      maxAttempts: 6,
-      upstreams: [
-        "https://rpc.ankr.com/polygon",
-        "https://rpc-mainnet.matic.quiknode.pro",
-        "https://polygon-public.nodies.app",
-        "https://1rpc.io/matic",
-        "https://polygon-bor-rpc.publicnode.com",
-        "https://polygon.drpc.org",
-        "https://polygon.gateway.tenderly.co",
-        "https://gateway.tenderly.co/public/polygon",
-        "https://api.zan.top/polygon-mainnet",
-        "https://polygon.lava.build",
-        "https://poly.api.pocket.network",
-        "https://rpc.sentio.xyz/matic",
-        "https://matic.rpc.sentio.xyz",
-        "https://polygon-rpc.keccak.io",
-      ],
-      wsUpstreams: ["wss://polygon-bor-rpc.publicnode.com", "wss://polygon.drpc.org"],
-    },
-    {
-      name: "Robinhood Chain",
-      slug: "robinhood",
-      chainId: 4663,
-      requestTimeoutMs: 5000,
-      maxAttempts: 1,
-      upstreams: ["https://rpc.mainnet.chain.robinhood.com"],
-    },
-  ],
-};
+/**
+ * Config file names, resolved next to the running binary/script (see
+ * {@link configDir}). `default.config.json` ships with the repo and holds the
+ * complete baseline; `config.json` is a gitignored, user-owned file that
+ * overrides any subset of those values.
+ */
+export const DEFAULT_CONFIG_FILE = "default.config.json";
+export const USER_CONFIG_FILE = "config.json";
+
+/** Thrown when a config file is missing, unparseable, or malformed. */
+export class ConfigError extends Error {
+  override name = "ConfigError";
+}
+
+type Json = Record<string, unknown>;
+
+function isObject(v: unknown): v is Json {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/**
+ * Reject any key on `o` not in `allowed`, so a typo (e.g. `maxAttempt`,
+ * `chian`) fails loudly instead of being silently ignored. `$schema` is always
+ * permitted so files can reference the JSON Schema for editor tooling.
+ */
+function rejectUnknownKeys(o: Json, allowed: readonly string[], path: string): void {
+  const ok = new Set<string>([...allowed, "$schema"]);
+  for (const key of Object.keys(o)) {
+    if (!ok.has(key)) {
+      throw new ConfigError(`${path}: unknown key "${key}"`);
+    }
+  }
+}
+
+function reqNumber(o: Json, key: string, path: string): number {
+  const v = o[key];
+  if (typeof v !== "number" || !Number.isFinite(v)) {
+    throw new ConfigError(`${path}.${key} must be a number`);
+  }
+  return v;
+}
+
+/** Integer within `[min, max]` (inclusive). */
+function reqIntInRange(
+  o: Json,
+  key: string,
+  path: string,
+  min: number,
+  max: number,
+): number {
+  const v = reqNumber(o, key, path);
+  if (!Number.isInteger(v) || v < min || v > max) {
+    throw new ConfigError(`${path}.${key} must be an integer between ${min} and ${max}`);
+  }
+  return v;
+}
+
+/** Integer `>= min`, with no upper bound. */
+function reqIntAtLeast(o: Json, key: string, path: string, min: number): number {
+  const v = reqNumber(o, key, path);
+  if (!Number.isInteger(v) || v < min) {
+    throw new ConfigError(`${path}.${key} must be an integer >= ${min}`);
+  }
+  return v;
+}
+
+function reqString(o: Json, key: string, path: string): string {
+  const v = o[key];
+  if (typeof v !== "string" || v.length === 0) {
+    throw new ConfigError(`${path}.${key} must be a non-empty string`);
+  }
+  return v;
+}
+
+/** A short lowercase URL-path slug: `[a-z0-9-]`, used as the route segment. */
+const SLUG_RE = /^[a-z0-9-]+$/;
+
+function reqSlug(o: Json, key: string, path: string): string {
+  const v = reqString(o, key, path);
+  if (!SLUG_RE.test(v)) {
+    throw new ConfigError(
+      `${path}.${key} must match ${SLUG_RE} (lowercase letters, digits, hyphens)`,
+    );
+  }
+  return v;
+}
+
+/** Validate a list of endpoint URLs, requiring one of `schemes`. */
+function reqUrlArray(
+  o: Json,
+  key: string,
+  path: string,
+  schemes: readonly string[],
+): string[] {
+  const v = o[key];
+  if (!Array.isArray(v)) {
+    throw new ConfigError(`${path}.${key} must be an array of strings`);
+  }
+  return v.map((url, i) => {
+    const where = `${path}.${key}[${i}]`;
+    if (typeof url !== "string" || url.length === 0) {
+      throw new ConfigError(`${where} must be a non-empty string`);
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new ConfigError(`${where} is not a valid URL: ${url}`);
+    }
+    if (!schemes.includes(parsed.protocol)) {
+      const want = schemes.map((s) => s.replace(":", "")).join(" or ");
+      throw new ConfigError(`${where} must use ${want} (got "${url}")`);
+    }
+    return url;
+  });
+}
+
+const CHAIN_KEYS = [
+  "name",
+  "slug",
+  "chainId",
+  "upstreams",
+  "wsUpstreams",
+  "requestTimeoutMs",
+  "maxAttempts",
+] as const;
+
+function parseChain(raw: unknown, i: number): ChainConfig {
+  const path = `chains[${i}]`;
+  if (!isObject(raw)) throw new ConfigError(`${path} must be an object`);
+  rejectUnknownKeys(raw, CHAIN_KEYS, path);
+
+  const upstreams = reqUrlArray(raw, "upstreams", path, ["http:", "https:"]);
+  if (upstreams.length === 0) {
+    throw new ConfigError(`${path}.upstreams must not be empty`);
+  }
+  const wsUpstreams =
+    raw.wsUpstreams === undefined
+      ? undefined
+      : reqUrlArray(raw, "wsUpstreams", path, ["ws:", "wss:"]);
+
+  return {
+    name: reqString(raw, "name", path),
+    slug: reqSlug(raw, "slug", path),
+    // Chain IDs are positive; cap at 2^53-1 to stay in safe-integer range.
+    chainId: reqIntInRange(raw, "chainId", path, 1, Number.MAX_SAFE_INTEGER),
+    upstreams,
+    wsUpstreams,
+    requestTimeoutMs: reqIntAtLeast(raw, "requestTimeoutMs", path, 1),
+    maxAttempts: reqIntAtLeast(raw, "maxAttempts", path, 1),
+  };
+}
+
+const BREAKER_KEYS = ["failureThreshold", "cooldownMs", "halfOpenMaxProbes"] as const;
+
+function parseBreaker(raw: unknown): BreakerConfig {
+  if (!isObject(raw)) throw new ConfigError("breaker must be an object");
+  rejectUnknownKeys(raw, BREAKER_KEYS, "breaker");
+  return {
+    failureThreshold: reqIntAtLeast(raw, "failureThreshold", "breaker", 1),
+    cooldownMs: reqIntAtLeast(raw, "cooldownMs", "breaker", 0),
+    halfOpenMaxProbes: reqIntAtLeast(raw, "halfOpenMaxProbes", "breaker", 1),
+  };
+}
+
+function parseChains(raw: unknown): ChainConfig[] {
+  if (!Array.isArray(raw)) throw new ConfigError("chains must be an array");
+  if (raw.length === 0) throw new ConfigError("chains must not be empty");
+  const chains = raw.map((c, i) => parseChain(c, i));
+  const seen = new Set<string>();
+  for (const c of chains) {
+    if (seen.has(c.slug)) throw new ConfigError(`duplicate chain slug: ${c.slug}`);
+    seen.add(c.slug);
+  }
+  return chains;
+}
+
+const ROOT_KEYS = [
+  "port",
+  "healthCheckIntervalMs",
+  "maxLagBlocks",
+  "breaker",
+  "chains",
+] as const;
+
+/** Valid TCP port range. */
+const MIN_PORT = 1;
+const MAX_PORT = 65_535;
+
+/**
+ * Validate a complete config object (as found in `default.config.json`). Every
+ * field is required and range-checked. Unknown keys are rejected. Throws
+ * {@link ConfigError} on any missing, ill-typed, or out-of-range value so a
+ * broken baseline fails loudly at startup.
+ */
+export function parseAppConfig(raw: unknown): AppConfig {
+  if (!isObject(raw)) throw new ConfigError("config root must be an object");
+  rejectUnknownKeys(raw, ROOT_KEYS, "config");
+  return {
+    port: reqIntInRange(raw, "port", "config", MIN_PORT, MAX_PORT),
+    healthCheckIntervalMs: reqIntAtLeast(raw, "healthCheckIntervalMs", "config", 1),
+    maxLagBlocks: reqIntAtLeast(raw, "maxLagBlocks", "config", 0),
+    breaker: parseBreaker(raw.breaker),
+    chains: parseChains(raw.chains),
+  };
+}
+
+/**
+ * Overlay a partial user config (`config.json`) onto a fully-parsed base
+ * (`default.config.json`). Every top-level field is optional: a file may
+ * override only `chains`, only `port`, etc. Unknown keys are rejected (so a
+ * typo fails loudly). Providing `chains` replaces the list wholesale (not
+ * merged per-chain). Values are range-checked exactly as the baseline is.
+ * Throws {@link ConfigError} on any mismatch.
+ */
+export function mergeConfig(base: AppConfig, raw: unknown): AppConfig {
+  if (!isObject(raw)) throw new ConfigError("config root must be an object");
+  rejectUnknownKeys(raw, ROOT_KEYS, "config");
+  const out: AppConfig = {
+    ...base,
+    breaker: { ...base.breaker },
+    chains: base.chains.map((c) => ({ ...c })),
+  };
+
+  if (raw.port !== undefined) {
+    out.port = reqIntInRange(raw, "port", "config", MIN_PORT, MAX_PORT);
+  }
+  if (raw.healthCheckIntervalMs !== undefined) {
+    out.healthCheckIntervalMs = reqIntAtLeast(raw, "healthCheckIntervalMs", "config", 1);
+  }
+  if (raw.maxLagBlocks !== undefined) {
+    out.maxLagBlocks = reqIntAtLeast(raw, "maxLagBlocks", "config", 0);
+  }
+  if (raw.breaker !== undefined) out.breaker = parseBreaker(raw.breaker);
+  if (raw.chains !== undefined) out.chains = parseChains(raw.chains);
+  return out;
+}
+
+/**
+ * Directory the config files live in: alongside the running binary/script.
+ *
+ * When compiled with `bun build --compile`, `import.meta.dir` resolves inside
+ * the embedded virtual filesystem (`/$bunfs/...`), where the sibling JSON files
+ * don't exist. In that case we fall back to the directory of the real
+ * executable (`process.execPath`) so the binary finds the `default.config.json`
+ * shipped next to it. Run from source, `import.meta.dir` is the `src/` dir's
+ * parent's `src` — i.e. next to `config.ts` — so we resolve relative to the
+ * project root instead (one level up).
+ */
+export function configDir(): string {
+  const metaDir = import.meta.dir;
+  // Compiled single-file binary: files live next to the executable.
+  if (metaDir.startsWith("/$bunfs") || metaDir.startsWith("B:\\~BUN")) {
+    const exe = process.execPath;
+    const sep =
+      exe.lastIndexOf("/") === -1 ? exe.lastIndexOf("\\") : exe.lastIndexOf("/");
+    return sep === -1 ? "." : exe.slice(0, sep);
+  }
+  // Run from source (src/config.ts): config files live in the project root.
+  return `${metaDir}/..`;
+}
+
+async function readJson(path: string): Promise<unknown> {
+  const file = Bun.file(path);
+  if (!(await file.exists())) {
+    throw new ConfigError(`config file not found: ${path}`);
+  }
+  try {
+    return JSON.parse(await file.text());
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new ConfigError(`failed to parse ${path}: ${msg}`);
+  }
+}
+
+/** Apply `PORT` / `HEALTH_CHECK_INTERVAL_MS` env overrides, if set. */
+function applyEnv(cfg: AppConfig): AppConfig {
+  if (process.env.PORT !== undefined) {
+    const n = Number(process.env.PORT);
+    if (Number.isFinite(n)) cfg.port = n;
+  }
+  if (process.env.HEALTH_CHECK_INTERVAL_MS !== undefined) {
+    const n = Number(process.env.HEALTH_CHECK_INTERVAL_MS);
+    if (Number.isFinite(n)) cfg.healthCheckIntervalMs = n;
+  }
+  return cfg;
+}
+
+/**
+ * Load the runtime config. Reads the committed `default.config.json` as the
+ * baseline, overlays the gitignored `config.json` when present, then applies
+ * `PORT` / `HEALTH_CHECK_INTERVAL_MS` env overrides. Both files are read at
+ * runtime via `Bun.file` from {@link configDir}, so a compiled binary ships
+ * with its defaults beside it rather than embedding them at build time.
+ *
+ * @param explicitPath value of `--config` (overrides the user `config.json`
+ *   location), or null to use the default resolution.
+ * @throws {ConfigError} if the default file is missing/invalid, or a resolved
+ *   user file is missing (when explicit), unparseable, or fails validation.
+ */
+export async function loadConfig(explicitPath: string | null = null): Promise<AppConfig> {
+  const dir = configDir();
+  const base = parseAppConfig(await readJson(`${dir}/${DEFAULT_CONFIG_FILE}`));
+
+  let userPath: string | null = null;
+  if (explicitPath) {
+    userPath = explicitPath;
+  } else if (process.env.SAE_CONFIG) {
+    userPath = process.env.SAE_CONFIG;
+  } else {
+    const candidate = `${dir}/${USER_CONFIG_FILE}`;
+    if (await Bun.file(candidate).exists()) userPath = candidate;
+  }
+
+  const merged = userPath ? mergeConfig(base, await readJson(userPath)) : base;
+  return applyEnv(merged);
+}
