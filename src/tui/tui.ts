@@ -519,9 +519,14 @@ function hostWidth(innerW: number): number {
   return Math.max(HOST_MIN, Math.min(HOST_MAX, innerW - fixed));
 }
 
-/** All upstreams (HTTP first, then WS) as one ordered list. */
+/** All upstreams sorted by protocol (http first, then ws), then lexicographically by base URL. */
 function allUpstreams(c: ChainStatus): UpstreamStatus[] {
-  return [...c.upstreams, ...(c.wsUpstreams ?? [])];
+  return [...c.upstreams, ...(c.wsUpstreams ?? [])].sort((a, b) => {
+    const ka = a.kind ?? "http";
+    const kb = b.kind ?? "http";
+    if (ka !== kb) return ka < kb ? -1 : 1;
+    return a.url.localeCompare(b.url);
+  });
 }
 
 /**
@@ -631,12 +636,11 @@ function brailleGraph(
   return lines;
 }
 
-/** RPS line graph (braille), auto-scaled, in the chain's color, y-axis labels. */
+/** RPS line graph (braille), auto-scaled, always blue, y-axis labels. */
 function rpsGraphLines(c: ChainStatus, width: number, height: number): string[] {
-  const color = chainColor(c.slug);
   const series = c.metrics?.rpsSeries ?? [];
   const fmt = (v: number): string => (v >= 10 ? String(Math.round(v)) : v.toFixed(1));
-  return brailleGraph(series, width, height, color, undefined, fmt);
+  return brailleGraph(series, width, height, blue, undefined, fmt);
 }
 
 /**
@@ -646,10 +650,8 @@ function rpsGraphLines(c: ChainStatus, width: number, height: number): string[] 
  */
 function errGraphLines(c: ChainStatus, width: number, height: number): string[] {
   const series = c.metrics?.errRateSeries ?? [];
-  const peak = Math.max(0, ...series);
-  const color = peak === 0 ? dim : peak < 0.25 ? yellow : red;
   const fmt = (v: number): string => `${Math.round(v * 100)}%`;
-  return brailleGraph(series, width, height, color, 1, fmt);
+  return brailleGraph(series, width, height, red, 1, fmt);
 }
 
 // ---------------------------------------------------------------------------
@@ -856,7 +858,7 @@ function globalRpsGraphLines(
 ): string[] {
   const series = globalRpsSeries(chains);
   const fmt = (v: number): string => (v >= 10 ? String(Math.round(v)) : v.toFixed(1));
-  return brailleGraph(series, width, height, cyan, undefined, fmt);
+  return brailleGraph(series, width, height, blue, undefined, fmt);
 }
 
 /** Fleet-wide error-rate graph over a fixed 0..1 domain (like errGraphLines). */
@@ -866,10 +868,8 @@ function globalErrGraphLines(
   height: number,
 ): string[] {
   const series = globalErrRateSeries(chains);
-  const peak = Math.max(0, ...series);
-  const color = peak === 0 ? dim : peak < 0.25 ? yellow : red;
   const fmt = (v: number): string => `${Math.round(v * 100)}%`;
-  return brailleGraph(series, width, height, color, 1, fmt);
+  return brailleGraph(series, width, height, red, 1, fmt);
 }
 
 // ---------------------------------------------------------------------------
@@ -1062,12 +1062,11 @@ function renderFrame(): void {
   frame += `${ESC}1;1H${clip(padV(headerLine(chains), width), width)}`;
   frame += `${ESC}2;1H${ESC}2K`; // spacer row between header and grid
 
-  // Top-left: a chain-info box on top, then a row of two side-by-side graph
-  // boxes (rps | error rate). Graphs are a fixed 5 rows tall + 2 borders; the
-  // info box takes the remaining height.
-  const GRAPH_H = 5;
-  const graphBoxH = GRAPH_H + 2;
-  const infoBoxH = Math.max(3, topH - graphBoxH);
+  // Top-left: info box on top, then two side-by-side graph boxes (rps | error).
+  // All three tiles share the same height: split topH into two equal rows.
+  const infoBoxH = Math.max(3, Math.floor(topH / 2));
+  const graphBoxH = Math.max(3, topH - infoBoxH);
+  const GRAPH_H = graphBoxH - 2; // content rows inside graph box (minus borders)
   const graphTop = gridTop + infoBoxH;
   // Split the left column into two graph boxes sharing the middle edge.
   const gLeftW = Math.max(3, Math.floor(leftW / 2));
