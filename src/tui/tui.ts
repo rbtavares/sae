@@ -33,6 +33,7 @@ const CHAIN_PALETTE = [cyan, magenta, yellow, blue, green];
 const chainColors = new Map<string, (s: string) => string>();
 
 export function registerChains(slugs: string[]): void {
+  chainBuffer(GLOBAL_SLUG); // pre-seed the merged log ring for the global page
   slugs.forEach((slug, i) => {
     chainColors.set(slug, CHAIN_PALETTE[i % CHAIN_PALETTE.length]!);
     chainBuffer(slug); // pre-seed so global lines fan out to every chain
@@ -41,6 +42,18 @@ export function registerChains(slugs: string[]): void {
 
 function chainColor(slug: string): (s: string) => string {
   return chainColors.get(slug) ?? cyan;
+}
+
+/** Fixed visible width of the merged-log chain tag on the global page. */
+const CHAIN_TAG_W = 9;
+
+/**
+ * A short, fixed-width, chain-colored slug label prefixed to each line in the
+ * global page's merged log stream, so a request/attempt line shows which chain
+ * produced it. Only used on page 0 (per-chain pages already filter by chain).
+ */
+function chainTag(slug: string): string {
+  return chainColor(slug)(padV(truncate(slug, CHAIN_TAG_W), CHAIN_TAG_W));
 }
 
 function timestamp(): string {
@@ -233,6 +246,10 @@ let paused = false;
 // reset, probe) fan out to every chain's OUT ring so they surface on any page.
 const LOG_HISTORY_MAX = 500;
 
+// Sentinel slug for the global stats page (page 0). Its log rings receive a
+// copy of every chain's lines, so the global page shows the merged stream.
+const GLOBAL_SLUG = "*";
+
 type LogSide = "in" | "out";
 interface ChainLog {
   in: string[];
@@ -254,21 +271,31 @@ function pushToBuffer(ring: string[], line: string): void {
   if (ring.length > LOG_HISTORY_MAX) ring.shift();
 }
 
-// Paginated view: one chain per page, switched with left/right arrows. The
-// last-rendered snapshot is retained so an arrow press can rebuild the pane
-// immediately without waiting for the next 1s status tick.
+// Paginated view: page 0 is the global stats page (all chains), pages 1..N
+// show one chain each, switched with left/right arrows. The last-rendered
+// snapshot is retained so an arrow press can rebuild the pane immediately
+// without waiting for the next 1s status tick.
 let currentPage = 0;
 let lastChains: ChainStatus[] = [];
 // Vertical scroll offset into the upstream table (data rows, excluding the
 // pinned header). Clamped each render to the overflow; reset when the chain
-// page changes. Driven by the up/down arrows.
+// page changes. Driven by the up/down arrows. On the global page it scrolls
+// the per-chain table instead.
 let upstreamScroll = 0;
 
-/** Slug of the chain currently on screen, or null before any snapshot. */
+/** Total page count: the global page plus one page per chain. */
+function pageCount(chainCount: number): number {
+  return chainCount === 0 ? 0 : chainCount + 1;
+}
+
+/** Slug of the page currently on screen: GLOBAL_SLUG for the global page,
+ *  the chain's slug otherwise, or null before any snapshot. */
 function activeSlug(): string | null {
-  const count = lastChains.length;
-  if (count === 0) return null;
-  return lastChains[clampPage(count)]!.slug;
+  const pages = pageCount(lastChains.length);
+  if (pages === 0) return null;
+  const page = clampPage(pages);
+  if (page === 0) return GLOBAL_SLUG;
+  return lastChains[page - 1]!.slug;
 }
 
 interface Controls {
@@ -296,13 +323,19 @@ function emit(line: string, side: LogSide, chain?: string): void {
     return;
   }
   if (chain === undefined) {
+    // Global lines (startup, reset, probe) land on every ring, incl. global.
+    chainBuffer(GLOBAL_SLUG);
     for (const buf of logBuffers.values()) pushToBuffer(buf[side], line);
   } else {
     pushToBuffer(chainBuffer(chain)[side], line);
+    // Mirror into the global page's merged stream, tagged with the owning
+    // chain (colored slug) so a merged line's origin is visible there.
+    pushToBuffer(chainBuffer(GLOBAL_SLUG)[side], `${chainTag(chain)} ${line}`);
   }
   // Paused freezes the pane; rings keep filling so unpausing/paging replays.
   if (paused) return;
-  if (chain === undefined || chain === activeSlug()) renderFrame();
+  const active = activeSlug();
+  if (chain === undefined || chain === active || active === GLOBAL_SLUG) renderFrame();
 }
 
 /** Clear both log columns for the on-screen chain and repaint. */
@@ -620,6 +653,226 @@ function errGraphLines(c: ChainStatus, width: number, height: number): string[] 
 }
 
 // ---------------------------------------------------------------------------
+// Global stats page (page 0)
+// ---------------------------------------------------------------------------
+
+/** Element-wise sum of same-length-ish series, right-aligned to the longest. */
+function sumSeries(seriesList: number[][]): number[] {
+  const len = seriesList.reduce((m, s) => Math.max(m, s.length), 0);
+  const out = Array.from({ length: len }, () => 0);
+  for (const s of seriesList) {
+    const off = len - s.length;
+    for (let i = 0; i < s.length; i++) out[off + i]! += s[i]!;
+  }
+  return out;
+}
+
+/** Total requests/second across every chain, per second, oldest first. */
+function globalRpsSeries(chains: ChainStatus[]): number[] {
+  return sumSeries(chains.map((c) => c.metrics?.rpsSeries ?? []));
+}
+
+/**
+ * Fleet-wide error fraction per second: total failed / total requests across
+ * all chains (0 when idle). Weighted by traffic so a busy healthy chain isn't
+ * drowned out by one idle failing chain.
+ */
+function globalErrRateSeries(chains: ChainStatus[]): number[] {
+  const req = globalRpsSeries(chains);
+  const errCounts = sumSeries(
+    chains.map((c) => {
+      const rates = c.metrics?.errRateSeries ?? [];
+      const reqs = c.metrics?.rpsSeries ?? [];
+      return rates.map((r, i) => r * (reqs[i] ?? 0));
+    }),
+  );
+  const off = req.length - errCounts.length;
+  return req.map((n, i) => (n > 0 ? (errCounts[i - off] ?? 0) / n : 0));
+}
+
+/** Weighted (by lifetime total) ok-rate across chains, or null with no data. */
+function globalOkRate(chains: ChainStatus[]): number | null {
+  let weight = 0;
+  let acc = 0;
+  for (const c of chains) {
+    const ok = c.metrics?.okRate;
+    const total = c.metrics?.total ?? 0;
+    if (ok == null || total === 0) continue;
+    acc += ok * total;
+    weight += total;
+  }
+  return weight > 0 ? acc / weight : null;
+}
+
+/** Healthy (breaker closed) vs total upstream counts across HTTP + WS. */
+function upstreamHealth(c: ChainStatus): { healthy: number; total: number } {
+  const all = allUpstreams(c);
+  return {
+    healthy: all.filter((u) => u.state === "closed").length,
+    total: all.length,
+  };
+}
+
+/** Global page box title: page selector `◂ Global (1/14) ▸`. */
+function globalNav(pages: number): string {
+  return pages > 1
+    ? `${bold("\u25C2")} ${bold("Global")} ${bold(`(1/${pages})`)} ${bold("\u25B8")}`
+    : bold("Global");
+}
+
+/** Top-left quadrant of the global page: fleet-wide identity + totals. */
+function globalInfoLines(chains: ChainStatus[]): string[] {
+  let healthy = 0;
+  let total = 0;
+  for (const c of chains) {
+    const h = upstreamHealth(c);
+    healthy += h.healthy;
+    total += h.total;
+  }
+  const totalReq = chains.reduce((sum, c) => sum + (c.metrics?.total ?? 0), 0);
+  const ok = globalOkRate(chains);
+  const upClr = healthy === total ? green : healthy === 0 ? red : yellow;
+  return [
+    kv("chains", cyan(String(chains.length))),
+    kv("upstreams", `${upClr(`${healthy}/${total}`)} ${dim("healthy")}`),
+    kv("requests", `${bold(fmtCount(totalReq))} ${dim("total")}`),
+    kv(
+      "ok rate",
+      ok === null
+        ? dim("\u2013")
+        : (ok < 0.99 ? yellow : green)(`${(ok * 100).toFixed(1)}%`),
+    ),
+  ];
+}
+
+// Fixed column widths for the global per-chain table (CHAIN flexes).
+const GCOL = {
+  rps: 6,
+  req: 7,
+  err: 5,
+  p50: 6,
+  p95: 6,
+  up: 5,
+  head: 11,
+} as const;
+
+const GNAME_MIN = 10;
+const GNAME_MAX = 24;
+
+/** CHAIN column width: fill the box between the fixed columns, clamped. */
+function chainNameWidth(innerW: number): number {
+  // gutter(2) + name + gap + rps + gap + req + gap + err + gap + p50 + gap +
+  // p95 + gap + up + gap + head
+  const fixed =
+    2 +
+    1 +
+    GCOL.rps +
+    1 +
+    GCOL.req +
+    1 +
+    GCOL.err +
+    1 +
+    GCOL.p50 +
+    1 +
+    GCOL.p95 +
+    1 +
+    GCOL.up +
+    1 +
+    GCOL.head;
+  return Math.max(GNAME_MIN, Math.min(GNAME_MAX, innerW - fixed));
+}
+
+/** Header for the global per-chain table; mirrors upstreamLiteHeader(). */
+function chainTableHeader(nameW: number): string {
+  return dim(
+    `  ${padV("CHAIN", nameW)} ${padV("RPS", GCOL.rps, "right")} ${padV("TOTAL", GCOL.req, "right")} ${padV("ERR", GCOL.err, "right")} ${padV("P50", GCOL.p50, "right")} ${padV("P95", GCOL.p95, "right")} ${padV("UP", GCOL.up, "right")} ${padV("HEAD", GCOL.head, "right")}`,
+  );
+}
+
+/** One chain row for the global table: live health across all its upstreams. */
+function chainTableRow(c: ChainStatus, nameW: number): string {
+  const { healthy, total } = upstreamHealth(c);
+  const icon =
+    healthy === total && total > 0
+      ? green("\u25CF") // ●
+      : healthy === 0
+        ? red("\u25CB") // ○
+        : yellow("\u25D0"); // ◐
+
+  const name = chainColor(c.slug)(padV(truncate(c.name, nameW), nameW));
+
+  const rps = c.metrics?.rps ?? 0;
+  const rpsCell = padV(rps.toFixed(1), GCOL.rps, "right");
+  const rpsStr = rps > 0 ? rpsCell : dim(rpsCell);
+
+  const req = dim(padV(fmtCount(c.metrics?.total ?? 0), GCOL.req, "right"));
+
+  const okRate = c.metrics?.okRate;
+  const errPct = okRate == null ? null : (1 - okRate) * 100;
+  const errCell = padV(
+    errPct === null ? "\u2013" : `${errPct.toFixed(0)}%`,
+    GCOL.err,
+    "right",
+  );
+  const err =
+    errPct === null || errPct === 0
+      ? dim(errCell)
+      : errPct < 5
+        ? yellow(errCell)
+        : red(errCell);
+
+  const p50 = dim(padV(fmtMs(c.metrics?.p50 ?? null), GCOL.p50, "right"));
+  const p95Val = c.metrics?.p95 ?? null;
+  const p95Cell = padV(fmtMs(p95Val), GCOL.p95, "right");
+  const p95 = p95Val !== null && p95Val > 800 ? yellow(p95Cell) : dim(p95Cell);
+
+  const upCell = padV(`${healthy}/${total}`, GCOL.up, "right");
+  const up =
+    healthy === total ? green(upCell) : healthy === 0 ? red(upCell) : yellow(upCell);
+
+  const headStr = c.bestKnownBlock === "0" ? "\u2013" : `#${c.bestKnownBlock}`;
+  const head = dim(padV(truncate(headStr, GCOL.head), GCOL.head, "right"));
+
+  return `${icon} ${name} ${rpsStr} ${req} ${err} ${p50} ${p95} ${up} ${head}`;
+}
+
+/** Global per-chain table: pinned header + one scrollable row per chain. */
+function chainTable(
+  chains: ChainStatus[],
+  innerW: number,
+): { header: string; rows: string[] } {
+  const nameW = chainNameWidth(innerW);
+  return {
+    header: chainTableHeader(nameW),
+    rows: chains.map((c) => chainTableRow(c, nameW)),
+  };
+}
+
+/** Fleet-wide rps graph (braille), auto-scaled, y-axis labels. */
+function globalRpsGraphLines(
+  chains: ChainStatus[],
+  width: number,
+  height: number,
+): string[] {
+  const series = globalRpsSeries(chains);
+  const fmt = (v: number): string => (v >= 10 ? String(Math.round(v)) : v.toFixed(1));
+  return brailleGraph(series, width, height, cyan, undefined, fmt);
+}
+
+/** Fleet-wide error-rate graph over a fixed 0..1 domain (like errGraphLines). */
+function globalErrGraphLines(
+  chains: ChainStatus[],
+  width: number,
+  height: number,
+): string[] {
+  const series = globalErrRateSeries(chains);
+  const peak = Math.max(0, ...series);
+  const color = peak === 0 ? dim : peak < 0.25 ? yellow : red;
+  const fmt = (v: number): string => `${Math.round(v * 100)}%`;
+  return brailleGraph(series, width, height, color, 1, fmt);
+}
+
+// ---------------------------------------------------------------------------
 // Public API: logs
 // ---------------------------------------------------------------------------
 
@@ -773,9 +1026,11 @@ function renderFrame(): void {
   const width = cols();
 
   const chains = lastChains;
-  const page = chains.length > 0 ? clampPage(chains.length) : 0;
-  const chain = chains.length > 0 ? chains[page]! : null;
-  const slug = chain?.slug ?? null;
+  const pages = pageCount(chains.length);
+  const page = pages > 0 ? clampPage(pages) : 0;
+  const isGlobal = pages > 0 && page === 0;
+  const chain = !isGlobal && pages > 0 ? chains[page - 1]! : null;
+  const slug = isGlobal ? GLOBAL_SLUG : (chain?.slug ?? null);
   const buf = slug ? logBuffers.get(slug) : undefined;
   const chainClr = chain ? chainColor(chain.slug) : undefined;
 
@@ -824,22 +1079,30 @@ function renderFrame(): void {
     left: 1,
     width: leftW,
     height: infoBoxH,
-    title: chain ? chainNav(chain, page, chains.length) : "chain",
-    body: chain ? chainInfoLines(chain) : [],
+    title: isGlobal ? globalNav(pages) : chain ? chainNav(chain, page, pages) : "chain",
+    body: isGlobal ? globalInfoLines(chains) : chain ? chainInfoLines(chain) : [],
     align: "top",
     color: chainClr,
   });
   // Graph box titles carry the current value, e.g. "rps: 4.0" / "error: 12%".
-  const rpsTitle = chain ? `rps: ${(chain.metrics?.rps ?? 0).toFixed(1)}` : "rps";
-  const errRate = chain?.metrics?.okRate == null ? 0 : 1 - chain.metrics.okRate;
-  const errTitle = chain ? `error: ${Math.round(errRate * 100)}%` : "error";
+  const rpsVal = isGlobal
+    ? chains.reduce((sum, c) => sum + (c.metrics?.rps ?? 0), 0)
+    : (chain?.metrics?.rps ?? 0);
+  const rpsTitle = isGlobal || chain ? `rps: ${rpsVal.toFixed(1)}` : "rps";
+  const okRate = isGlobal ? globalOkRate(chains) : (chain?.metrics?.okRate ?? null);
+  const errRate = okRate == null ? 0 : 1 - okRate;
+  const errTitle = isGlobal || chain ? `error: ${Math.round(errRate * 100)}%` : "error";
   frame += drawBox({
     top: graphTop,
     left: 1,
     width: gLeftW,
     height: graphBoxH,
     title: rpsTitle,
-    body: chain ? rpsGraphLines(chain, gLeftW - 4, GRAPH_H) : [],
+    body: isGlobal
+      ? globalRpsGraphLines(chains, gLeftW - 4, GRAPH_H)
+      : chain
+        ? rpsGraphLines(chain, gLeftW - 4, GRAPH_H)
+        : [],
     align: "top",
   });
   frame += drawBox({
@@ -848,7 +1111,11 @@ function renderFrame(): void {
     width: gRightW,
     height: graphBoxH,
     title: errTitle,
-    body: chain ? errGraphLines(chain, gRightW - 4, GRAPH_H) : [],
+    body: isGlobal
+      ? globalErrGraphLines(chains, gRightW - 4, GRAPH_H)
+      : chain
+        ? errGraphLines(chain, gRightW - 4, GRAPH_H)
+        : [],
     align: "top",
   });
 
@@ -856,12 +1123,15 @@ function renderFrame(): void {
   // the data rows below it scroll with the up/down arrows when they overflow
   // the box. `visibleRows` = inner height minus the two borders and the header.
   let upstreamBody: string[] = [];
-  let upstreamTitle = "upstreams";
-  if (chain) {
-    const { header, rows } = upstreamTable(chain, rightW - 4);
+  let upstreamTitle = isGlobal ? "chains" : "upstreams";
+  if (isGlobal || chain) {
+    const label = isGlobal ? "chains" : "upstreams";
+    const { header, rows } = isGlobal
+      ? chainTable(chains, rightW - 4)
+      : upstreamTable(chain!, rightW - 4);
     const visibleRows = Math.max(1, topH - 2 - 1); // -borders -header
     const maxScroll = Math.max(0, rows.length - visibleRows);
-    // Clamp the shared scroll state to this chain's overflow.
+    // Clamp the shared scroll state to this page's overflow.
     upstreamScroll = Math.min(Math.max(0, upstreamScroll), maxScroll);
     const shown = rows.slice(upstreamScroll, upstreamScroll + visibleRows);
     upstreamBody = [header, ...shown];
@@ -871,9 +1141,9 @@ function renderFrame(): void {
       const last = upstreamScroll + shown.length;
       const more = upstreamScroll < maxScroll ? " \u2193" : "";
       const prev = upstreamScroll > 0 ? "\u2191 " : "";
-      upstreamTitle = `upstreams: ${total} ${dim(`[${prev}${first}-${last}${more}]`)}`;
+      upstreamTitle = `${label}: ${total} ${dim(`[${prev}${first}-${last}${more}]`)}`;
     } else {
-      upstreamTitle = `upstreams: ${total}`;
+      upstreamTitle = `${label}: ${total}`;
     }
   }
   frame += drawBox({
@@ -939,14 +1209,25 @@ function keyHints(): string {
   );
 }
 
-/** Flat line list for non-TTY (plain) mode: header + chain facts + upstreams. */
+/** Flat line list for non-TTY (plain) mode: header + current page's content.
+ *  Page 0 prints the global summary + per-chain table; chain pages print the
+ *  chain facts + upstream table. */
 function plainLines(chains: ChainStatus[]): string[] {
   const lines = [headerLine(chains)];
   if (chains.length === 0) return lines;
-  const page = clampPage(chains.length);
-  const chain = chains[page]!;
+  const pages = pageCount(chains.length);
+  const page = clampPage(pages);
   lines.push("");
-  lines.push(chainNav(chain, page, chains.length));
+  if (page === 0) {
+    lines.push(globalNav(pages));
+    for (const l of globalInfoLines(chains)) lines.push(l);
+    lines.push("");
+    const { header, rows } = chainTable(chains, GNAME_MAX + 60);
+    for (const l of [header, ...rows]) lines.push(`  ${l}`);
+    return lines;
+  }
+  const chain = chains[page - 1]!;
+  lines.push(chainNav(chain, page, pages));
   for (const l of chainInfoLines(chain)) lines.push(l);
   lines.push("");
   for (const l of upstreamLines(chain, HOST_MAX + 40)) lines.push(`  ${l}`);
@@ -970,10 +1251,10 @@ export function renderStatus(chains: ChainStatus[]): void {
   renderFrame();
 }
 
-/** Flip the paged chain by `delta` (wraps) and repaint. Resets upstream scroll
- *  so a new chain always starts at the top of its table. */
+/** Flip the page by `delta` (wraps across global + chain pages) and repaint.
+ *  Resets upstream scroll so a new page always starts at the top of its table. */
 function turnPage(delta: number): void {
-  const count = lastChains.length;
+  const count = pageCount(lastChains.length);
   if (count <= 1) return;
   currentPage = (clampPage(count) + delta + count) % count;
   upstreamScroll = 0;
