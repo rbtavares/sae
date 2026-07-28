@@ -146,17 +146,20 @@ if (process.stdout.isTTY && !process.env.NO_TUI) {
   setInterval(() => tui.renderStatus(allStatuses()), 60_000);
 }
 
-startServer();
-
-tui.start(allStatuses(), config.port, {
-  onProbe: () => {
-    void runAllHealthChecks().then(() => tui.renderStatus(allStatuses()));
-  },
-  onReset: () => {
-    for (const b of balancers.values()) b.resetStats();
-    for (const m of metrics.values()) m.reset();
-    tui.renderStatus(allStatuses());
-  },
+// Only enter the TUI once the listener is actually bound. Otherwise a failed
+// bind (e.g. EADDRINUSE) would first paint a full-screen frame and then exit,
+// leaving a stray board in the terminal scrollback above the error message.
+startServer(() => {
+  tui.start(allStatuses(), config.port, {
+    onProbe: () => {
+      void runAllHealthChecks().then(() => tui.renderStatus(allStatuses()));
+    },
+    onReset: () => {
+      for (const b of balancers.values()) b.resetStats();
+      for (const m of metrics.values()) m.reset();
+      tui.renderStatus(allStatuses());
+    },
+  });
 });
 
 /** Normalize a request path: strip trailing slashes, default to "/". */
@@ -170,7 +173,7 @@ function normalizePath(rawUrl: string): string {
  * actionable message instead of an unhandled exception. The most common failure
  * is the port already being in use.
  */
-function startServer() {
+function startServer(onListening: () => void) {
   const host = process.env.HOST ?? "0.0.0.0";
   const wss = new WebSocketServer({ noServer: true });
 
@@ -217,7 +220,7 @@ function startServer() {
     process.exit(1);
   });
 
-  httpServer.listen(config.port, host);
+  httpServer.listen(config.port, host, onListening);
   return httpServer;
 }
 
