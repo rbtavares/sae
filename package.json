@@ -1,7 +1,7 @@
 {
   "name": "sae",
   "version": "1.0.0",
-  "description": "EVM JSON-RPC load balancer with health-aware failover and a live TUI.",
+  "description": "Self-hosted EVM RPC load balancer with circuit breakers, latency-aware routing, and a live TUI dashboard.",
   "type": "module",
   "license": "MIT",
   "private": true,
@@ -12,30 +12,25 @@
     "node": ">=22"
   },
   "os": ["darwin", "linux", "win32"],
-  "files": ["dist", "bin", "default.config.json", "sae.schema.json"],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepare": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
     "start": "node bin/sae.mjs",
     "dev": "tsc -p tsconfig.build.json && sh -c 'tsc -p tsconfig.build.json --watch --preserveWatchOutput & exec node --watch dist/index.js \"$@\"' --",
-    "typecheck": "tsc --noEmit",
     "test": "tsc -p tsconfig.test.json && node --test \"dist-test/tests/**/*.test.js\"",
+    "typecheck": "tsc --noEmit",
     "lint": "oxlint src tests",
     "format": "oxfmt src tests",
-    "format:check": "oxfmt --check src tests",
-    "release": "release-it"
+    "format:check": "oxfmt --check src tests"
   },
   "dependencies": {
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@release-it/conventional-changelog": "^11.0.1",
     "@types/node": "^22.10.0",
     "@types/ws": "^8.5.13",
     "oxfmt": "^0.59.0",
     "oxlint": "^1.74.0",
-    "release-it": "^20.2.1",
     "typescript": "^5.7.0"
   },
   "packageManager": "pnpm@10.0.0"
