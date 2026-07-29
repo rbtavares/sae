@@ -21,16 +21,19 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint src tests",
     "format": "oxfmt src tests",
-    "format:check": "oxfmt --check src tests"
+    "format:check": "oxfmt --check src tests",
+    "release": "release-it"
   },
   "dependencies": {
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@release-it/conventional-changelog": "^11.0.1",
     "@types/node": "^22.10.0",
     "@types/ws": "^8.5.13",
     "oxfmt": "^0.59.0",
     "oxlint": "^1.74.0",
+    "release-it": "^20.2.1",
     "typescript": "^5.7.0"
   },
   "packageManager": "pnpm@10.0.0"
