@@ -17,6 +17,7 @@ const base: AppConfig = {
     {
       name: "Ethereum",
       slug: "eth",
+      family: "evm",
       chainId: 1,
       upstreams: ["https://rpc.mevblocker.io"],
       requestTimeoutMs: 5000,
@@ -210,15 +211,95 @@ describe("value/range validation", () => {
       }),
     ).toThrow(/unknown key "extra"/);
   });
+
+  test("rejects a negative per-chain maxLagBlocks", () => {
+    expect(() => mergeConfig(base, withChain({ ...chain(), maxLagBlocks: -1 }))).toThrow(
+      /maxLagBlocks must be an integer >= 0/,
+    );
+  });
+
+  test("accepts a per-chain maxLagBlocks override", () => {
+    const out = mergeConfig(base, withChain({ ...chain(), maxLagBlocks: 50 }));
+    expect(out.chains[0]!.maxLagBlocks).toBe(50);
+    // The global default is untouched by a chain-level override.
+    expect(out.maxLagBlocks).toBe(base.maxLagBlocks);
+  });
+});
+
+describe("chain family", () => {
+  const withChain = (c: object) => ({ chains: [c] });
+  const solana = () => ({
+    name: "Solana",
+    slug: "sol",
+    family: "solana",
+    upstreams: ["https://api.mainnet-beta.solana.com"],
+    requestTimeoutMs: 5000,
+    maxAttempts: 5,
+  });
+
+  test("defaults to evm when omitted, keeping existing configs valid", () => {
+    const out = mergeConfig(
+      base,
+      withChain({
+        name: "T",
+        slug: "t",
+        chainId: 1,
+        upstreams: ["https://rpc.example.com"],
+        requestTimeoutMs: 1000,
+        maxAttempts: 2,
+      }),
+    );
+    expect(out.chains[0]!.family).toBe("evm");
+  });
+
+  test("accepts solana without a chainId", () => {
+    const out = mergeConfig(base, withChain(solana()));
+    expect(out.chains[0]!.family).toBe("solana");
+    expect(out.chains[0]!.chainId).toBe(undefined);
+  });
+
+  test("still requires chainId for evm chains", () => {
+    const { chainId, ...noId } = { ...solana(), family: "evm", chainId: 1 };
+    void chainId;
+    expect(() => mergeConfig(base, withChain(noId))).toThrow(/chainId must be a number/);
+  });
+
+  test("validates a chainId supplied alongside a non-evm family", () => {
+    expect(() => mergeConfig(base, withChain({ ...solana(), chainId: 0 }))).toThrow(
+      /chainId must be an integer/,
+    );
+  });
+
+  test("rejects an unknown family", () => {
+    expect(() => mergeConfig(base, withChain({ ...solana(), family: "sui" }))).toThrow(
+      /family must be one of: evm, solana/,
+    );
+  });
 });
 
 describe("loadConfig", () => {
-  test("loads the shipped default.config.json (13 unique chains)", async () => {
+  test("loads the shipped default.config.json with unique chain slugs", async () => {
     const cfg = await loadConfig();
     expect(cfg.chains.length).toBeGreaterThan(0);
     const slugs = cfg.chains.map((c) => c.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
     expect(cfg.breaker.failureThreshold).toBeGreaterThan(0);
+  });
+
+  test("every shipped chain has a valid family, and evm ones a chainId", async () => {
+    const cfg = await loadConfig();
+    for (const c of cfg.chains) {
+      expect(["evm", "solana"].includes(c.family)).toBe(true);
+      if (c.family === "evm") expect(typeof c.chainId).toBe("number");
+    }
+  });
+
+  test("ships a Solana chain with no chainId", async () => {
+    const cfg = await loadConfig();
+    const sol = cfg.chains.find((c) => c.slug === "sol");
+    expect(sol?.family).toBe("solana");
+    expect(sol?.chainId).toBe(undefined);
+    expect((sol?.upstreams.length ?? 0) > 0).toBe(true);
   });
 
   test("throws when an explicit user config file is missing", async () => {

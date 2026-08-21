@@ -314,6 +314,29 @@
       "requestTimeoutMs": 5000,
       "maxAttempts": 1,
       "upstreams": ["https://rpc.mainnet.chain.robinhood.com"]
+    },
+    {
+      "name": "Solana",
+      "slug": "sol",
+      "family": "solana",
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 5,
+      "maxLagBlocks": 50,
+      "upstreams": [
+        "https://api.mainnet-beta.solana.com",
+        "https://solana-rpc.publicnode.com",
+        "https://public.rpc.solanavibestation.com",
+        "https://rpc.magicblock.app/mainnet",
+        "https://solana.lava.build",
+        "https://solana-mainnet.gateway.tatum.io",
+        "https://solana.leorpc.com/?api_key=FREE"
+      ],
+      "wsUpstreams": [
+        "wss://api.mainnet-beta.solana.com",
+        "wss://solana-rpc.publicnode.com",
+        "wss://public.rpc.solanavibestation.com",
+        "wss://rpc.magicblock.app/mainnet"
+      ]
     }
   ]
 }

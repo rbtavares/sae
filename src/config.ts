@@ -3,12 +3,23 @@ import { readFile } from "node:fs/promises";
 import { dirname, join, parse as parsePath } from "node:path";
 import { fileURLToPath } from "node:url";
 
+/**
+ * Which JSON-RPC dialect a chain speaks. Decides the health-probe method and
+ * how its result is read; everything else in the proxy is dialect-agnostic.
+ */
+export type ChainFamily = "evm" | "solana";
+
+export const CHAIN_FAMILIES = ["evm", "solana"] as const;
+
 export interface ChainConfig {
   /** Human-readable name. */
   name: string;
   /** URL path segment, e.g. "eth" -> POST /eth */
   slug: string;
-  chainId: number;
+  /** RPC dialect. Defaults to "evm" when omitted from the config file. */
+  family: ChainFamily;
+  /** EVM chain ID. Absent for families that have no numeric chain ID. */
+  chainId?: number;
   /** Upstream RPC endpoints, tried in health/latency order. */
   upstreams: string[];
   /**
@@ -22,6 +33,12 @@ export interface ChainConfig {
   requestTimeoutMs: number;
   /** Max upstreams tried per incoming request. */
   maxAttempts: number;
+  /**
+   * Per-chain override of the global {@link AppConfig.maxLagBlocks}. Block
+   * times vary by orders of magnitude (12s on Ethereum, ~400ms Solana slots,
+   * ~10ms on MegaETH), so one global threshold cannot fit every chain.
+   */
+  maxLagBlocks?: number;
 }
 
 export interface BreakerConfig {
@@ -36,7 +53,10 @@ export interface BreakerConfig {
 export interface AppConfig {
   port: number;
   healthCheckIntervalMs: number;
-  /** Upstreams more than this many blocks behind the best-known head are deprioritized. */
+  /**
+   * Upstreams more than this many blocks behind the best-known head are
+   * deprioritized. Chains may override it via {@link ChainConfig.maxLagBlocks}.
+   */
   maxLagBlocks: number;
   breaker: BreakerConfig;
   chains: ChainConfig[];
@@ -129,6 +149,18 @@ function reqSlug(o: Json, key: string, path: string): string {
   return v;
 }
 
+/** Optional chain family, defaulting to `evm` so existing configs keep working. */
+function optFamily(o: Json, key: string, path: string): ChainFamily {
+  const v = o[key];
+  if (v === undefined) return "evm";
+  if (typeof v !== "string" || !(CHAIN_FAMILIES as readonly string[]).includes(v)) {
+    throw new ConfigError(
+      `${path}.${key} must be one of: ${CHAIN_FAMILIES.join(", ")} (got ${JSON.stringify(v)})`,
+    );
+  }
+  return v as ChainFamily;
+}
+
 /** Validate a list of endpoint URLs, requiring one of `schemes`. */
 function reqUrlArray(
   o: Json,
@@ -162,11 +194,13 @@ function reqUrlArray(
 const CHAIN_KEYS = [
   "name",
   "slug",
+  "family",
   "chainId",
   "upstreams",
   "wsUpstreams",
   "requestTimeoutMs",
   "maxAttempts",
+  "maxLagBlocks",
 ] as const;
 
 function parseChain(raw: unknown, i: number): ChainConfig {
@@ -183,15 +217,28 @@ function parseChain(raw: unknown, i: number): ChainConfig {
       ? undefined
       : reqUrlArray(raw, "wsUpstreams", path, ["ws:", "wss:"]);
 
+  const family = optFamily(raw, "family", path);
+  // EVM chains are identified by a numeric chain ID; other families have no
+  // such notion, so it is optional for them — but still checked when present.
+  // Chain IDs are positive; cap at 2^53-1 to stay in safe-integer range.
+  const chainId =
+    family === "evm" || raw.chainId !== undefined
+      ? reqIntInRange(raw, "chainId", path, 1, Number.MAX_SAFE_INTEGER)
+      : undefined;
+
   return {
     name: reqString(raw, "name", path),
     slug: reqSlug(raw, "slug", path),
-    // Chain IDs are positive; cap at 2^53-1 to stay in safe-integer range.
-    chainId: reqIntInRange(raw, "chainId", path, 1, Number.MAX_SAFE_INTEGER),
+    family,
+    chainId,
     upstreams,
     wsUpstreams,
     requestTimeoutMs: reqIntAtLeast(raw, "requestTimeoutMs", path, 1),
     maxAttempts: reqIntAtLeast(raw, "maxAttempts", path, 1),
+    maxLagBlocks:
+      raw.maxLagBlocks === undefined
+        ? undefined
+        : reqIntAtLeast(raw, "maxLagBlocks", path, 0),
   };
 }
 

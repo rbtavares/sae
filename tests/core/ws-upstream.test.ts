@@ -2,6 +2,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { WebSocketServer } from "ws";
 import type { BreakerConfig } from "../../src/config.js";
+import { SOLANA_WS_PROBE } from "../../src/core/probe.js";
 import { WsSession, WsUpstream } from "../../src/core/ws-upstream.js";
 import { afterEach, describe, expect, sleep, test } from "../helpers.js";
 
@@ -29,8 +30,13 @@ afterEach(async () => {
  * A minimal JSON-RPC-over-WS echo/probe server. Answers eth_blockNumber with
  * `block`, and (when `pushSub` is set) emits an eth_subscription push after a
  * client eth_subscribe, letting us verify subscription frames relay through.
+ *
+ * `slotSubscribe` mimics a Solana pubsub endpoint: it replies with a
+ * *subscription id*, not a slot.
  */
-function fakeWsRpc(opts: { block?: string; pushSub?: boolean } = {}): string {
+function fakeWsRpc(
+  opts: { block?: string; pushSub?: boolean; subId?: number } = {},
+): string {
   const block = opts.block ?? "0x64";
   const server = createServer();
   const wss = new WebSocketServer({ server });
@@ -39,6 +45,10 @@ function fakeWsRpc(opts: { block?: string; pushSub?: boolean } = {}): string {
       const req = JSON.parse(data.toString()) as { id: unknown; method: string };
       if (req.method === "eth_blockNumber") {
         ws.send(JSON.stringify({ jsonrpc: "2.0", id: req.id, result: block }));
+      } else if (req.method === "slotSubscribe") {
+        ws.send(
+          JSON.stringify({ jsonrpc: "2.0", id: req.id, result: opts.subId ?? 3_354_946 }),
+        );
       } else if (req.method === "eth_subscribe") {
         ws.send(JSON.stringify({ jsonrpc: "2.0", id: req.id, result: "0xsub" }));
         if (opts.pushSub) {
@@ -69,6 +79,21 @@ describe("WsUpstream.probe", () => {
     await u.probe(2_000);
 
     expect(u.lastBlock).toBe(256n);
+    expect(u.latencyMs).toBeGreaterThan(0);
+    expect(u.breaker.currentState).toBe("closed");
+    expect(u.liveErrRate()).toBe(0);
+  });
+
+  test("solana: subscribes for liveness but never treats the sub id as a slot", async () => {
+    const url = fakeWsRpc({ subId: 3_354_946 });
+    const u = new WsUpstream(url, breakerCfg, undefined, SOLANA_WS_PROBE);
+
+    await u.probe(2_000);
+
+    // The reply is a subscription id. Recording it as a head would poison the
+    // lag calculation with a number that has nothing to do with the chain tip.
+    expect(u.lastBlock).toBe(0n);
+    // It is still a valid liveness + latency sample.
     expect(u.latencyMs).toBeGreaterThan(0);
     expect(u.breaker.currentState).toBe("closed");
     expect(u.liveErrRate()).toBe(0);

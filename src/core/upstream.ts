@@ -1,4 +1,6 @@
-import { UpstreamHealth } from "./upstream-health.js";
+import type { BreakerConfig } from "../config.js";
+import { EVM_PROBE, type ProbeSpec } from "./probe.js";
+import { type BreakerChangeListener, UpstreamHealth } from "./upstream-health.js";
 
 export type { BreakerChangeListener } from "./upstream-health.js";
 
@@ -11,8 +13,22 @@ export interface CallOutcome {
   error?: string;
 }
 
-/** JSON-RPC error codes worth failing over for (rate limits, node-side issues). */
-const RETRYABLE_RPC_CODES = new Set([-32005, -32016, -32042, -32603]);
+/**
+ * JSON-RPC error codes worth failing over for (rate limits, node-side issues).
+ *
+ * The Solana entries are all "this node cannot serve it, another might":
+ * -32004 block not available, -32005 node unhealthy / behind, -32011 no
+ * transaction history (pruned vs archive), -32016 minimum context slot not
+ * reached, -32019 long-term storage query failed.
+ *
+ * Deliberately absent are Solana's deterministic outcomes — -32002 (preflight
+ * failure), -32007 / -32009 (slot skipped), -32015 (unsupported transaction
+ * version) — which are legitimate answers, the analogue of `execution
+ * reverted`, and must reach the caller untouched.
+ */
+const RETRYABLE_RPC_CODES = new Set([
+  -32004, -32005, -32011, -32016, -32019, -32042, -32603,
+]);
 const RETRYABLE_RPC_MESSAGE = /rate.?limit|too many request|capacity|try again/i;
 
 /**
@@ -43,6 +59,18 @@ function findRetryableRpcError(bodyText: string): string | null {
 
 /** An HTTP JSON-RPC upstream: requests are forwarded per-call over `fetch`. */
 export class Upstream extends UpstreamHealth {
+  private readonly probeSpec: ProbeSpec;
+
+  constructor(
+    url: string,
+    breakerCfg: BreakerConfig,
+    onBreakerChange?: BreakerChangeListener,
+    probeSpec: ProbeSpec = EVM_PROBE,
+  ) {
+    super(url, breakerCfg, onBreakerChange);
+    this.probeSpec = probeSpec;
+  }
+
   /** Forward a raw JSON-RPC body to this upstream. */
   async call(bodyText: string, timeoutMs: number): Promise<CallOutcome> {
     this.breaker.onAttempt();
@@ -95,21 +123,19 @@ export class Upstream extends UpstreamHealth {
     return { ok: true, retryable: false, status: res.status, bodyText: text };
   }
 
-  /** Active probe: eth_blockNumber. Updates breaker, latency, and head block. */
+  /**
+   * Active probe using this chain family's head query (see {@link ProbeSpec}).
+   * Updates breaker, latency, and head block.
+   */
   async probe(timeoutMs: number): Promise<void> {
-    const body = JSON.stringify({
-      jsonrpc: "2.0",
-      id: "healthcheck",
-      method: "eth_blockNumber",
-      params: [],
-    });
+    const { method, params, parseHead } = this.probeSpec;
+    const body = JSON.stringify({ jsonrpc: "2.0", id: "healthcheck", method, params });
     const outcome = await this.call(body, timeoutMs);
-    if (!outcome.ok || !outcome.bodyText) return;
+    if (!outcome.ok || !outcome.bodyText || !parseHead) return;
     try {
-      const parsed = JSON.parse(outcome.bodyText) as { result?: string };
-      if (typeof parsed.result === "string") {
-        this.lastBlock = BigInt(parsed.result);
-      }
+      const parsed = JSON.parse(outcome.bodyText) as { result?: unknown };
+      const head = parseHead(parsed.result);
+      if (head !== null) this.lastBlock = head;
     } catch {
       // Ignore malformed probe responses; call() already scored the attempt.
     }

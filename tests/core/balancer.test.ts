@@ -25,15 +25,18 @@ function makeBalancer(
   upstreams: string[],
   maxAttempts = upstreams.length,
   wsUpstreams?: string[],
+  overrides: Partial<ChainConfig> = {},
 ) {
   const cfg: ChainConfig = {
     name: "Test",
     slug: "test",
+    family: "evm",
     chainId: 1337,
     upstreams,
     wsUpstreams,
     requestTimeoutMs: 1_000,
     maxAttempts,
+    ...overrides,
   };
   return new ChainBalancer(cfg, breakerCfg, 5);
 }
@@ -173,6 +176,31 @@ describe("ChainBalancer failover", () => {
     expect(status.bestKnownBlock).toBe("256");
     const behindStatus = status.upstreams.find((u) => u.url === behind);
     expect(behindStatus?.lagging).toBe(true);
+  });
+
+  test("a per-chain maxLagBlocks overrides the global threshold", async () => {
+    const ahead = fakeRpc(() => ok("0x100")); // 256
+    const behind = fakeRpc(() => ok("0xf0")); // 240, i.e. 16 blocks back
+    // Global threshold is 5 (would flag it); the chain allows 50 (does not).
+    const balancer = makeBalancer([behind, ahead], 2, undefined, { maxLagBlocks: 50 });
+
+    await balancer.runHealthChecks();
+    const status = balancer.status();
+    expect(status.upstreams.find((u) => u.url === behind)?.lagging).toBe(false);
+  });
+
+  test("status reports the family and omits chainId for non-evm chains", () => {
+    const evm = makeBalancer([fakeRpc(() => ok("0x1"))]).status();
+    expect(evm.family).toBe("evm");
+    expect(evm.chainId).toBe(1337);
+
+    const sol = makeBalancer([fakeRpc(() => ok("0x1"))], 1, undefined, {
+      family: "solana",
+      chainId: undefined,
+    }).status();
+    expect(sol.family).toBe("solana");
+    expect(sol.chainId).toBe(undefined);
+    expect(JSON.stringify(sol).includes("chainId")).toBe(false);
   });
 });
 
