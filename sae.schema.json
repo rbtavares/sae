@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/lighthouse-engineering/sae/sae.schema.json",
   "title": "sae config",
-  "description": "Configuration for the sae EVM JSON-RPC load balancer. default.config.json must be complete; a user config.json may override any subset.",
+  "description": "Configuration for the sae JSON-RPC load balancer. default.config.json must be complete; a user config.json may override any subset.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -24,7 +24,7 @@
     "maxLagBlocks": {
       "type": "integer",
       "minimum": 0,
-      "description": "Upstreams more than this many blocks behind the best-known head are deprioritized (not removed)."
+      "description": "Default for all chains: upstreams more than this many blocks behind the best-known head are deprioritized (not removed). A chain may override it."
     },
     "breaker": {
       "type": "object",
@@ -71,11 +71,16 @@
           "pattern": "^[a-z0-9-]+$",
           "description": "URL path segment, e.g. \"eth\" -> POST /eth and wss://.../eth. Lowercase letters, digits, hyphens."
         },
+        "family": {
+          "enum": ["evm", "solana"],
+          "default": "evm",
+          "description": "JSON-RPC dialect. Decides the health-probe method (eth_blockNumber vs getSlot) and how its result is read. Defaults to \"evm\"."
+        },
         "chainId": {
           "type": "integer",
           "minimum": 1,
           "maximum": 9007199254740991,
-          "description": "EVM chain ID."
+          "description": "EVM chain ID. Required for family \"evm\"; omit for families with no numeric chain ID."
         },
         "upstreams": {
           "type": "array",
@@ -107,16 +112,22 @@
           "type": "integer",
           "minimum": 1,
           "description": "Max upstreams tried per incoming request."
+        },
+        "maxLagBlocks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Overrides the top-level maxLagBlocks for this chain. Useful where block time differs sharply from the default (e.g. ~400ms Solana slots)."
         }
       },
-      "required": [
-        "name",
-        "slug",
-        "chainId",
-        "upstreams",
-        "requestTimeoutMs",
-        "maxAttempts"
-      ]
+      "required": ["name", "slug", "upstreams", "requestTimeoutMs", "maxAttempts"],
+      "if": {
+        "not": { "required": ["family"] }
+      },
+      "then": { "required": ["chainId"] },
+      "else": {
+        "if": { "properties": { "family": { "const": "evm" } } },
+        "then": { "required": ["chainId"] }
+      }
     }
   }
 }

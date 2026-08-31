@@ -2,7 +2,7 @@
   <img src="header.png" alt="sae — open-source self-hosted evm rpc load balancer" width="100%">
 </p>
 
-Self-hosted EVM RPC load balancer that pools upstream endpoints per chain behind a single stable local URL, spreading traffic across all of them with automatic failover, per-upstream circuit breaking, block-lag awareness, and latency-aware routing.
+Self-hosted RPC load balancer for EVM chains and Solana that pools upstream endpoints per chain behind a single stable local URL, spreading traffic across all of them with automatic failover, per-upstream circuit breaking, block-lag awareness, and latency-aware routing.
 
 ## Features
 
@@ -12,7 +12,8 @@ Self-hosted EVM RPC load balancer that pools upstream endpoints per chain behind
 - **Latency-aware routing** — EWMA-ranked, lagging upstreams deprioritized
 - **Block-lag detection** — upstreams behind the best-known head are down-ranked
 - **Live TUI dashboard** — per-chain and per-upstream metrics, sparklines, logs
-- **13 chains, 169 HTTP + 27 WS upstreams** preconfigured out of the box
+- **EVM + Solana** — per-chain RPC dialect, with the right health probe for each
+- **14 chains, 176 HTTP + 31 WS upstreams** preconfigured out of the box
 
 ## Quick start
 
@@ -23,16 +24,20 @@ pnpm install               # builds dist/ via the prepare hook
 pnpm start                 # start sae on http://0.0.0.0:8545
 ```
 
-Then point any EVM client at a chain slug:
+Then point any client at a chain slug:
 
 ```bash
 curl -X POST http://localhost:8545/eth \
   -H 'content-type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}'
+
+curl -X POST http://localhost:8545/sol \
+  -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"getSlot"}'
 ```
 
 Use `http://localhost:8545/<slug>` as the RPC URL in your wallet, framework, or
-scripts — e.g. `/eth` for Ethereum, `/arb` for Arbitrum. See
+scripts — e.g. `/eth` for Ethereum, `/arb` for Arbitrum, `/sol` for Solana. See
 [Chains](#chains) for the full list.
 
 ## Installing the `sae` command
@@ -78,9 +83,14 @@ WebSocket upgrades are accepted on the same `/<slug>` path and proxied sticky to
 
 ## Chains
 
-sae works with **any EVM chain** — there's nothing chain-specific in the proxy.
-A chain is just a config entry: a slug, a chain ID, and a list of upstream RPC
-endpoints. Add, remove, or swap any of them in a [config file](#config-file).
+sae works with **any EVM chain** out of the box — a chain is just a config entry:
+a slug, a chain ID, and a list of upstream RPC endpoints. Add, remove, or swap
+any of them in a [config file](#config-file).
+
+Non-EVM chains are supported through the chain's `family`, which selects the RPC
+dialect used for health probes (everything else in the proxy is dialect-agnostic).
+`family` defaults to `"evm"`; `"solana"` is also supported. Solana chains omit
+`chainId`, since Solana has no numeric chain ID.
 
 The following ship preconfigured out of the box, each with a curated set of free
 public RPCs:
@@ -100,8 +110,9 @@ public RPCs:
 | Plasma | `plasma` | 9745 | 5 | 1 |
 | MegaETH | `megaeth` | 4326 | 4 | 2 |
 | Robinhood Chain | `robinhood` | 4663 | 1 | 0 |
+| Solana | `sol` | — | 7 | 4 |
 
-13 chains, 169 HTTP and 27 WebSocket upstreams out of the box. See
+14 chains, 176 HTTP and 31 WebSocket upstreams out of the box. See
 the [Config file](#config-file) to configure your own.
 
 ## How it works
@@ -135,21 +146,38 @@ Thresholds are configurable (see [Config file](#config-file)).
 
 ### Health probes
 
-Every 30s (configurable), all admissible upstreams get an `eth_blockNumber` call. Updates:
+Every 30s (configurable), all admissible upstreams get a head query. Updates:
 
 - Head block per upstream (used for lag detection)
 - Breaker state (probe success/failure counts)
 - EWMA latency
+
+The probe depends on the chain's `family`:
+
+| Family | HTTP probe | WS probe |
+|--------|------------|----------|
+| `evm` | `eth_blockNumber` | `eth_blockNumber` |
+| `solana` | `getSlot` (`confirmed` commitment) | `slotSubscribe` |
+
+Solana's WebSocket endpoint implements only `*Subscribe`/`*Unsubscribe`, so
+`getSlot` is unavailable there. `slotSubscribe` gives a liveness and latency
+sample, but its reply is a *subscription id* rather than a slot, so it
+deliberately does not feed head tracking. Nothing is lost: WS ranking ignores
+lag by design, because failing a long-lived socket over mid-stream would drop
+the client's subscriptions.
 
 ### Retryable vs pass-through errors
 
 Failover triggers on:
 - Network errors (timeout, connection refused, DNS failure)
 - HTTP 429, 403, 404, 5xx
-- JSON-RPC error codes `-32005`, `-32016`, `-32042`, `-32603`
+- JSON-RPC error codes `-32004`, `-32005`, `-32011`, `-32016`, `-32019`, `-32042`, `-32603`
 - Rate-limit-like messages in RPC error text
 
-Everything else (revert errors, invalid params, etc.) returns directly to the caller — no point hammering other upstreams with the same bad request.
+Everything else returns directly to the caller — no point hammering other
+upstreams with the same request. That includes EVM reverts and invalid params,
+and on Solana the deterministic outcomes `-32002` (preflight failure), `-32007`
+/ `-32009` (slot skipped) and `-32015` (unsupported transaction version).
 
 Batch JSON-RPC requests are proxied as-is without per-item error inspection.
 
@@ -232,16 +260,31 @@ minimal `config.json` with just the fields you want to change:
       "wsUpstreams": [
         "wss://arbitrum.drpc.org"
       ]
+    },
+    {
+      "name": "Solana",
+      "slug": "sol",
+      "family": "solana",
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 5,
+      "maxLagBlocks": 50,
+      "upstreams": [
+        "https://api.mainnet-beta.solana.com"
+      ]
     }
   ]
 }
 ```
 
 Field notes: `slug` maps to `POST /arb` and `wss://.../arb` (lowercase letters,
-digits, hyphens); `wsUpstreams` is optional (omit to disable WS for that chain);
+digits, hyphens); `family` is `"evm"` (default) or `"solana"` and picks the
+health-probe dialect; `chainId` is required for `evm` chains and omitted for
+Solana; `wsUpstreams` is optional (omit to disable WS for that chain);
 `maxLagBlocks` deprioritizes (does not remove) upstreams more than N blocks
-behind the best-known head. Providing `chains` replaces the list **wholesale**
-(not merged per-chain), so include every chain you want served.
+behind the best-known head, and may be set per-chain to override the top-level
+default — useful where block time differs sharply, such as Solana's ~400ms
+slots. Providing `chains` replaces the list **wholesale** (not merged
+per-chain), so include every chain you want served.
 
 #### Validation
 
@@ -254,8 +297,9 @@ Config is validated on two levels:
 - **Startup (before serving).** Every value is checked at load time and a bad
   config is a **fatal error** — the server refuses to start rather than serve a
   half-broken setup. Checks include: `port` in `1..65535`; all durations and
-  counts are positive integers; `chainId` a positive integer; `upstreams` valid
-  `http(s)` URLs and `wsUpstreams` valid `ws(s)` URLs; `slug` matches
+  counts are positive integers; `family` one of `evm` / `solana`; `chainId` a
+  positive integer, required for `evm` chains and validated whenever present;
+  `upstreams` valid `http(s)` URLs and `wsUpstreams` valid `ws(s)` URLs; `slug` matches
   `[a-z0-9-]` and is unique. **Unknown keys are rejected**, so a typo like
   `maxAttempt` or `chian` fails loudly instead of being silently dropped.
 

@@ -1,5 +1,6 @@
 import type { BreakerConfig, ChainConfig } from "../config.js";
 import type { BreakerState } from "./circuit-breaker.js";
+import { httpProbeFor, wsProbeFor } from "./probe.js";
 import { type CallOutcome, Upstream } from "./upstream.js";
 import type { UpstreamHealth } from "./upstream-health.js";
 import { WsSession, WsUpstream } from "./ws-upstream.js";
@@ -78,17 +79,29 @@ export class ChainBalancer {
     private readonly events: BalancerEvents = {},
   ) {
     this.cfg = cfg;
-    this.maxLagBlocks = BigInt(maxLagBlocks);
+    // A chain-level threshold wins over the global one: block times differ by
+    // orders of magnitude across chains.
+    this.maxLagBlocks = BigInt(cfg.maxLagBlocks ?? maxLagBlocks);
+    const httpProbe = httpProbeFor(cfg.family);
+    const wsProbe = wsProbeFor(cfg.family);
     this.upstreams = cfg.upstreams.map(
       (url) =>
-        new Upstream(url, breakerCfg, (host, from, to, reason) =>
-          this.events.onBreakerChange?.(cfg.slug, host, from, to, reason),
+        new Upstream(
+          url,
+          breakerCfg,
+          (host, from, to, reason) =>
+            this.events.onBreakerChange?.(cfg.slug, host, from, to, reason),
+          httpProbe,
         ),
     );
     this.wsUpstreams = (cfg.wsUpstreams ?? []).map(
       (url) =>
-        new WsUpstream(url, breakerCfg, (host, from, to, reason) =>
-          this.events.onBreakerChange?.(cfg.slug, host, from, to, reason),
+        new WsUpstream(
+          url,
+          breakerCfg,
+          (host, from, to, reason) =>
+            this.events.onBreakerChange?.(cfg.slug, host, from, to, reason),
+          wsProbe,
         ),
     );
   }
@@ -311,6 +324,8 @@ export class ChainBalancer {
     return {
       name: this.cfg.name,
       slug: this.cfg.slug,
+      family: this.cfg.family,
+      // Omitted from the JSON entirely for families without a numeric ID.
       chainId: this.cfg.chainId,
       bestKnownBlock: bestBlock.toString(),
       upstreams: this.upstreams.map((u) =>

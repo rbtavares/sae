@@ -222,7 +222,10 @@ export interface UpstreamStatus {
 export interface ChainStatus {
   name: string;
   slug: string;
-  chainId: number;
+  /** RPC dialect; absent in older/hand-rolled status payloads, treated as EVM. */
+  family?: string;
+  /** Absent for chains without a numeric chain ID (e.g. Solana). */
+  chainId?: number;
   bestKnownBlock: string;
   upstreams: UpstreamStatus[];
   /** WebSocket upstreams (only present for chains with wsUpstreams configured). */
@@ -488,10 +491,17 @@ function chainInfoLines(c: ChainStatus): string[] {
   const color = chainColor(c.slug);
   const hasWs = (c.wsUpstreams?.length ?? 0) > 0;
   const proto = hasWs ? `${dim("POST/WS")}` : `${dim("POST")}`;
+  // Chains without a numeric ID (Solana) show their family instead, so the
+  // row is never blank and never shows a made-up number.
+  const identity =
+    c.chainId === undefined
+      ? kv("family", cyan(c.family ?? "?"))
+      : kv("chain id", cyan(String(c.chainId)));
+  const headLabel = c.family === "solana" ? "slot" : "head";
   return [
     kv("endpoint", `${proto} ${color(`/${c.slug}`)}`),
-    kv("chain id", cyan(String(c.chainId))),
-    kv("head", cyan(`#${c.bestKnownBlock}`)),
+    identity,
+    kv(headLabel, cyan(`#${c.bestKnownBlock}`)),
   ];
 }
 

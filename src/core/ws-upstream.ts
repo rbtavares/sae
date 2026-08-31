@@ -1,5 +1,7 @@
 import WebSocket from "ws";
-import { UpstreamHealth } from "./upstream-health.js";
+import type { BreakerConfig } from "../config.js";
+import { EVM_PROBE, type ProbeSpec } from "./probe.js";
+import { type BreakerChangeListener, UpstreamHealth } from "./upstream-health.js";
 
 /**
  * A live upstream WebSocket session bound to exactly one client WS. The
@@ -86,6 +88,18 @@ export class WsSession {
  * and short-lived probe connections used to rank endpoints.
  */
 export class WsUpstream extends UpstreamHealth {
+  private readonly probeSpec: ProbeSpec;
+
+  constructor(
+    url: string,
+    breakerCfg: BreakerConfig,
+    onBreakerChange?: BreakerChangeListener,
+    probeSpec: ProbeSpec = EVM_PROBE,
+  ) {
+    super(url, breakerCfg, onBreakerChange);
+    this.probeSpec = probeSpec;
+  }
+
   /** Count a client session that began riding this upstream. */
   markSessionStarted(): void {
     this.totalRequests += 1;
@@ -97,9 +111,11 @@ export class WsUpstream extends UpstreamHealth {
   }
 
   /**
-   * Open a throwaway probe socket, send `eth_blockNumber`, and score the round
-   * trip against the breaker + latency EWMA. Resolves when the probe settles
-   * (success, error, or timeout) so callers can await a full round.
+   * Open a throwaway probe socket, send this chain family's head query (see
+   * {@link ProbeSpec}), and score the round trip against the breaker + latency
+   * EWMA. Resolves when the probe settles (success, error, or timeout) so
+   * callers can await a full round. Probes whose reply carries no head (Solana
+   * pubsub) still count as a liveness and latency sample.
    */
   probe(timeoutMs: number): Promise<void> {
     this.breaker.onAttempt();
@@ -135,26 +151,24 @@ export class WsUpstream extends UpstreamHealth {
         finish();
       }, timeoutMs);
 
+      const { method, params, parseHead } = this.probeSpec;
+
       socket.on("open", () => {
         socket.send(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            id: "healthcheck",
-            method: "eth_blockNumber",
-            params: [],
-          }),
+          JSON.stringify({ jsonrpc: "2.0", id: "healthcheck", method, params }),
         );
       });
 
       socket.on("message", (data: WebSocket.RawData) => {
         if (settled) return;
-        try {
-          const parsed = JSON.parse(data.toString()) as { result?: string };
-          if (typeof parsed.result === "string") {
-            this.lastBlock = BigInt(parsed.result);
+        if (parseHead) {
+          try {
+            const parsed = JSON.parse(data.toString()) as { result?: unknown };
+            const head = parseHead(parsed.result);
+            if (head !== null) this.lastBlock = head;
+          } catch {
+            // malformed probe response; still counts as a reachable socket
           }
-        } catch {
-          // malformed probe response; still counts as a reachable socket
         }
         this.recordSuccess(performance.now() - startedAt);
         finish();
