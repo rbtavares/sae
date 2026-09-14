@@ -13,7 +13,7 @@ Self-hosted RPC load balancer for EVM chains and Solana that pools upstream endp
 - **Block-lag detection** — upstreams behind the best-known head are down-ranked
 - **Live TUI dashboard** — per-chain and per-upstream metrics, sparklines, logs
 - **EVM + Solana** — per-chain RPC dialect, with the right health probe for each
-- **14 chains, 176 HTTP + 31 WS upstreams** preconfigured out of the box
+- **14 chains, 138 HTTP + 30 WS upstreams** preconfigured out of the box
 
 ## Quick start
 
@@ -97,22 +97,22 @@ public RPCs:
 
 | Chain | Slug | Chain ID | HTTP upstreams | WS upstreams |
 |-------|------|---------:|---------------:|-------------:|
-| Ethereum Mainnet | `eth` | 1 | 34 | 3 |
-| BNB Smart Chain | `bnb` | 56 | 31 | 2 |
-| Base | `base` | 8453 | 17 | 3 |
-| Arbitrum One | `arb` | 42161 | 14 | 2 |
-| Polygon | `polygon` | 137 | 14 | 2 |
-| Monad | `monad` | 143 | 13 | 2 |
-| OP Mainnet | `op` | 10 | 12 | 3 |
-| Gnosis Chain | `gnosis` | 100 | 10 | 3 |
-| HyperEVM | `hyperevm` | 999 | 9 | 1 |
+| Ethereum Mainnet | `eth` | 1 | 26 | 3 |
+| BNB Smart Chain | `bnb` | 56 | 25 | 2 |
+| Base | `base` | 8453 | 14 | 3 |
+| Arbitrum One | `arb` | 42161 | 12 | 2 |
+| Polygon | `polygon` | 137 | 10 | 2 |
+| Monad | `monad` | 143 | 10 | 1 |
+| OP Mainnet | `op` | 10 | 9 | 3 |
+| Gnosis Chain | `gnosis` | 100 | 7 | 3 |
+| HyperEVM | `hyperevm` | 999 | 7 | 1 |
 | Berachain | `berachain` | 80094 | 5 | 3 |
-| Plasma | `plasma` | 9745 | 5 | 1 |
+| Plasma | `plasma` | 9745 | 2 | 1 |
 | MegaETH | `megaeth` | 4326 | 4 | 2 |
 | Robinhood Chain | `robinhood` | 4663 | 1 | 0 |
-| Solana | `sol` | — | 7 | 4 |
+| Solana | `sol` | — | 6 | 4 |
 
-14 chains, 176 HTTP and 31 WebSocket upstreams out of the box. See
+14 chains, 138 HTTP and 30 WebSocket upstreams out of the box. See
 the [Config file](#config-file) to configure your own.
 
 ## How it works
