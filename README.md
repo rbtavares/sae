@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="header.png" alt="sae — open-source self-hosted evm rpc load balancer" width="100%">
-</p>
+# sae
 
 Self-hosted RPC load balancer for EVM chains and Solana that pools upstream endpoints per chain behind a single stable local URL, spreading traffic across all of them with automatic failover, per-upstream circuit breaking, block-lag awareness, and latency-aware routing.
 
