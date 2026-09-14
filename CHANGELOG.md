@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.0](https://github.com/lighthouse-engineering/sae/compare/v1.0.0...v1.1.0) (2026-09-14)
+
+### Features
+
+* add Solana support via per-chain RPC family ([03d1e7a](https://github.com/lighthouse-engineering/sae/commit/03d1e7a0547ccfd6480b3ae69778a3c9697cefc3))
+
 ## 1.0.0 (2026-07-29)
 
 ### Features
