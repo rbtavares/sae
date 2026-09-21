@@ -11,7 +11,7 @@ your environment, make changes, and open a pull request.
 ## Getting started
 
 ```bash
-git clone https://github.com/lighthouse-engineering/sae.git
+git clone https://github.com/rbtavares/sae.git
 cd sae
 pnpm install        # installs deps and builds dist/ via the prepare hook
 ```
@@ -75,7 +75,7 @@ pnpm run test
 
 ## Reporting bugs and requesting features
 
-Use the [issue templates](https://github.com/lighthouse-engineering/sae/issues/new/choose).
+Use the [issue templates](https://github.com/rbtavares/sae/issues/new/choose).
 For security issues, see [SECURITY.md](SECURITY.md) — do not open a public issue.
 
 ## Code of Conduct

@@ -44,14 +44,27 @@ Link the package globally to get a `sae` binary on your `PATH`, then run it from
 anywhere:
 
 ```bash
-pnpm install               # builds dist/
-pnpm link --global         # exposes `sae`
+pnpm install               # builds dist/ via the prepare hook
+pnpm add -g "$PWD"         # exposes `sae` on your PATH
 sae                        # start with the bundled defaults
 sae --port 9000 --chain eth --chain arb
 ```
 
-`pnpm link --global` from another project (or `pnpm add <path-to-sae>`) makes the
-same command available there. To remove it: `pnpm uninstall --global sae`.
+Run `pnpm install` first: `pnpm add -g` links the package in place and does
+**not** run the `prepare` hook, so `dist/` has to exist beforehand.
+
+Pass an explicit path — `pnpm add -g .` is silently ignored and creates no
+binary. Use `"$PWD"` from the repo root, or an absolute path from anywhere:
+
+```bash
+pnpm add -g /path/to/sae
+```
+
+To remove it: `pnpm uninstall --global sae`.
+
+The global link stores an **absolute** path. If you move or rename the repo
+directory, `sae` breaks with `Cannot find module .../bin/sae.mjs`; re-run
+`pnpm add -g "$PWD"` from the new location to repair it.
 
 ## Building
 
@@ -327,4 +340,4 @@ stats, and sparkline rendering, using real local Node HTTP/WS servers (via the
 
 ## License
 
-[MIT](LICENSE) © Lighthouse.one
+[MIT](LICENSE) © rbtavares

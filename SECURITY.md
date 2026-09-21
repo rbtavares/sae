@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability in sae, please **do not open a public
 issue**. Instead, report it privately using GitHub's
-[private vulnerability reporting](https://github.com/lighthouse-engineering/sae/security/advisories/new)
+[private vulnerability reporting](https://github.com/rbtavares/sae/security/advisories/new)
 or email **support@lighthouse.one**.
 
 Please include:

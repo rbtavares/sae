@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/lighthouse-engineering/sae/sae.schema.json",
+  "$id": "https://github.com/rbtavares/sae/sae.schema.json",
   "title": "sae config",
   "description": "Configuration for the sae JSON-RPC load balancer. default.config.json must be complete; a user config.json may override any subset.",
   "type": "object",
