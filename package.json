@@ -17,6 +17,7 @@
     "win32"
   ],
   "scripts": {
+    "prepare": "pnpm build",
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
     "start": "node bin/sae.mjs",
