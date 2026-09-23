@@ -117,13 +117,14 @@ public RPCs:
 | OP Mainnet | `op` | 10 | 9 | 3 |
 | Gnosis Chain | `gnosis` | 100 | 7 | 3 |
 | HyperEVM | `hyperevm` | 999 | 7 | 1 |
+| Tempo | `tempo` | 4217 | 6 | 4 |
 | Berachain | `berachain` | 80094 | 5 | 3 |
 | Plasma | `plasma` | 9745 | 2 | 1 |
 | MegaETH | `megaeth` | 4326 | 4 | 2 |
 | Robinhood Chain | `robinhood` | 4663 | 1 | 0 |
 | Solana | `sol` | — | 6 | 4 |
 
-14 chains, 138 HTTP and 30 WebSocket upstreams out of the box. See
+15 chains, 144 HTTP and 34 WebSocket upstreams out of the box. See
 the [Config file](#config-file) to configure your own.
 
 ## How it works

@@ -309,6 +309,28 @@
         "wss://public.rpc.solanavibestation.com",
         "wss://rpc.magicblock.app/mainnet"
       ]
+    },
+    {
+      "name": "Tempo",
+      "slug": "tempo",
+      "chainId": 4217,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 4,
+      "maxLagBlocks": 20,
+      "upstreams": [
+        "https://rpc.mainnet.tempo.xyz",
+        "https://rpc.tempo.xyz",
+        "https://tempo-rpc.publicnode.com",
+        "https://tempo.drpc.org",
+        "https://tempo.gateway.tenderly.co",
+        "https://gateway.tenderly.co/public/tempo"
+      ],
+      "wsUpstreams": [
+        "wss://rpc.mainnet.tempo.xyz",
+        "wss://tempo-rpc.publicnode.com",
+        "wss://tempo.drpc.org",
+        "wss://tempo.gateway.tenderly.co"
+      ]
     }
   ]
 }
