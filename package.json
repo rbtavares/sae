@@ -1,6 +1,6 @@
 {
   "name": "sae",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Self-hosted EVM RPC load balancer with circuit breakers, latency-aware routing, and a live TUI dashboard.",
   "type": "module",
   "license": "MIT",

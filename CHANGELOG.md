@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.0](https://github.com/rbtavares/sae/compare/v1.1.0...v1.2.0) (2026-09-23)
+
+### Features
+
+* **config:** add Tempo chain with public RPC upstreams ([d7c8c83](https://github.com/rbtavares/sae/commit/d7c8c83bfea294b42224ea677c870c923bf22807))
+
+### Bug Fixes
+
+* **build:** add prepare hook so pnpm install builds dist/ ([bde7d3f](https://github.com/rbtavares/sae/commit/bde7d3fdfdde5c69e0fa1aeeb97d9c36d6d3e1aa))
+
 ## [1.1.0](https://github.com/lighthouse-engineering/sae/compare/v1.0.0...v1.1.0) (2026-09-14)
 
 ### Features
