@@ -112,9 +112,11 @@ public RPCs:
 | BNB Smart Chain | `bnb` | 56 | 25 | 2 |
 | Base | `base` | 8453 | 14 | 3 |
 | Arbitrum One | `arb` | 42161 | 12 | 2 |
+| Avalanche C-Chain | `avax` | 43114 | 12 | 3 |
 | Polygon | `polygon` | 137 | 10 | 2 |
 | Monad | `monad` | 143 | 10 | 1 |
 | OP Mainnet | `op` | 10 | 9 | 3 |
+| Linea | `linea` | 59144 | 8 | 3 |
 | Gnosis Chain | `gnosis` | 100 | 7 | 3 |
 | HyperEVM | `hyperevm` | 999 | 7 | 1 |
 | Tempo | `tempo` | 4217 | 6 | 4 |
@@ -124,7 +126,7 @@ public RPCs:
 | Robinhood Chain | `robinhood` | 4663 | 1 | 0 |
 | Solana | `sol` | — | 6 | 4 |
 
-15 chains, 144 HTTP and 34 WebSocket upstreams out of the box. See
+17 chains, 164 HTTP and 40 WebSocket upstreams out of the box. See
 the [Config file](#config-file) to configure your own.
 
 ## How it works

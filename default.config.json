@@ -32,6 +32,33 @@
       "wsUpstreams": ["wss://arbitrum-one-rpc.publicnode.com", "wss://arbitrum.drpc.org"]
     },
     {
+      "name": "Avalanche C-Chain",
+      "slug": "avax",
+      "chainId": 43114,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 6,
+      "maxLagBlocks": 10,
+      "upstreams": [
+        "https://api.avax.network/ext/bc/C/rpc",
+        "https://avalanche-c-chain-rpc.publicnode.com",
+        "https://avalanche.drpc.org",
+        "https://avalanche-mainnet.gateway.tenderly.co",
+        "https://gateway.tenderly.co/public/avalanche",
+        "https://api.zan.top/avax-mainnet/ext/bc/C/rpc",
+        "https://avax.api.pocket.network",
+        "https://avalanche.rpc.sentio.xyz",
+        "https://avalanche-rpc.blockreq.com/v1/rpc/public",
+        "https://avalanche.api.onfinality.io/public/ext/bc/C/rpc",
+        "https://rpc.nodeflare.app/avax/public",
+        "https://avax-mainnet.gateway.tatum.io"
+      ],
+      "wsUpstreams": [
+        "wss://avalanche-c-chain-rpc.publicnode.com",
+        "wss://avalanche.drpc.org",
+        "wss://avalanche-mainnet.gateway.tenderly.co"
+      ]
+    },
+    {
       "name": "Base",
       "slug": "base",
       "chainId": 8453,
@@ -190,6 +217,28 @@
         "https://hyperliquid.rpc.blxrbdn.com"
       ],
       "wsUpstreams": ["wss://hyperliquid.drpc.org"]
+    },
+    {
+      "name": "Linea",
+      "slug": "linea",
+      "chainId": 59144,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 6,
+      "upstreams": [
+        "https://rpc.linea.build",
+        "https://linea-rpc.publicnode.com",
+        "https://linea.drpc.org",
+        "https://linea.gateway.tenderly.co",
+        "https://gateway.tenderly.co/public/linea",
+        "https://linea.api.pocket.network",
+        "https://linea.rpc.sentio.xyz",
+        "https://linea-rpc.blockreq.com/v1/rpc/public"
+      ],
+      "wsUpstreams": [
+        "wss://linea-rpc.publicnode.com",
+        "wss://linea.drpc.org",
+        "wss://linea.gateway.tenderly.co"
+      ]
     },
     {
       "name": "MegaETH",
