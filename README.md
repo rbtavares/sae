@@ -113,6 +113,7 @@ public RPCs:
 | Base | `base` | 8453 | 14 | 3 |
 | Arbitrum One | `arb` | 42161 | 12 | 2 |
 | Avalanche C-Chain | `avax` | 43114 | 12 | 3 |
+| Arc | `arc` | 5042 | 11 | 8 |
 | Polygon | `polygon` | 137 | 10 | 2 |
 | Monad | `monad` | 143 | 10 | 1 |
 | OP Mainnet | `op` | 10 | 9 | 3 |
@@ -126,7 +127,7 @@ public RPCs:
 | Robinhood Chain | `robinhood` | 4663 | 1 | 0 |
 | Solana | `sol` | — | 6 | 4 |
 
-17 chains, 164 HTTP and 40 WebSocket upstreams out of the box. See
+18 chains, 175 HTTP and 48 WebSocket upstreams out of the box. See
 the [Config file](#config-file) to configure your own.
 
 ## How it works
