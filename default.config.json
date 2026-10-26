@@ -32,6 +32,37 @@
       "wsUpstreams": ["wss://arbitrum-one-rpc.publicnode.com", "wss://arbitrum.drpc.org"]
     },
     {
+      "name": "Arc",
+      "slug": "arc",
+      "chainId": 5042,
+      "requestTimeoutMs": 5000,
+      "maxAttempts": 6,
+      "maxLagBlocks": 20,
+      "upstreams": [
+        "https://rpc.mainnet.arc.io",
+        "https://arc-rpc.publicnode.com",
+        "https://arc.drpc.org",
+        "https://rpc.drpc.mainnet.arc.io",
+        "https://rpc.quicknode.mainnet.arc.io",
+        "https://rpc.blockdaemon.mainnet.arc.io",
+        "https://arc.gateway.tenderly.co",
+        "https://gateway.tenderly.co/public/arc",
+        "https://rpc.beamrpc.com",
+        "https://arc-rpc.blockreq.com/v1/rpc/public",
+        "https://rpc.nodeflare.app/arc/public"
+      ],
+      "wsUpstreams": [
+        "wss://rpc.mainnet.arc.io",
+        "wss://arc-rpc.publicnode.com",
+        "wss://arc.drpc.org",
+        "wss://rpc.drpc.mainnet.arc.io",
+        "wss://rpc.quicknode.mainnet.arc.io",
+        "wss://arc.gateway.tenderly.co",
+        "wss://gateway.tenderly.co/public/arc",
+        "wss://rpc.beamrpc.com"
+      ]
+    },
+    {
       "name": "Avalanche C-Chain",
       "slug": "avax",
       "chainId": 43114,
